@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SportsPulse</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#07090d;--ink2:#0d1219;--ink3:#131c26;
+  --cyan:#00f5ff;--lime:#39ff14;--amber:#ffd700;
+  --orange:#ff8c00;--red:#ff3860;--purple:#bf5fff;
+  --dim:#4a5a6e;--mid:#7a8fa6;--hi:#e8edf3;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow-x:hidden}
+body{font-family:'Rajdhani',sans-serif;background:var(--ink);color:var(--hi);min-height:100vh}
+
+/* ─── BALL TRANSITION OVERLAY ─── */
+#ballOverlay{
+  position:fixed;inset:0;z-index:9000;pointer-events:none;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;
+}
+#ballOverlay.active{pointer-events:all}
+.ball-anim{
+  font-size:0;opacity:0;
+  animation:none;
+  filter:drop-shadow(0 0 30px rgba(255,255,255,.5));
+}
+@keyframes ballBounce{
+  0%{font-size:0;opacity:0;transform:scale(0) rotate(0deg)}
+  30%{font-size:120px;opacity:1;transform:scale(1) rotate(180deg)}
+  55%{font-size:200px;opacity:1;transform:scale(1.1) rotate(360deg)}
+  80%{font-size:120px;opacity:.8;transform:scale(1) rotate(540deg)}
+  100%{font-size:500px;opacity:0;transform:scale(3) rotate(720deg)}
+}
+.ball-anim.playing{animation:ballBounce 1.1s cubic-bezier(.22,.61,.36,1) forwards}
+#ballOverlay{background:radial-gradient(circle,rgba(7,9,13,.0) 0%,rgba(7,9,13,.0) 100%)}
+#ballOverlay.active{background:radial-gradient(circle,rgba(7,9,13,.6) 0%,rgba(7,9,13,.9) 100%)}
+
+/* ─── PAGE TRANSITION ─── */
+#pageWrap{
+  transition:opacity .35s ease, transform .35s cubic-bezier(.4,0,.2,1);
+  opacity:1;transform:translateY(0);
+}
+#pageWrap.page-out{opacity:0;transform:translateY(12px)}
+#pageWrap.page-in{opacity:1;transform:translateY(0)}
+
+/* ─── HEADER ─── */
+header{
+  height:52px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 22px;background:rgba(7,9,13,.98);
+  border-bottom:1px solid rgba(0,245,255,.15);
+  position:sticky;top:0;z-index:500;backdrop-filter:blur(20px);
+}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:1.7rem;letter-spacing:6px;
+  background:linear-gradient(110deg,#00f5ff 0%,#39ff14 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hdr-mid{display:flex;align-items:center;gap:12px}
+.live-pill{display:flex;align-items:center;gap:5px;background:rgba(255,56,96,.1);
+  border:1px solid rgba(255,56,96,.3);border-radius:20px;padding:4px 10px;
+  font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--red);font-weight:700;letter-spacing:2px}
+.ldot{width:6px;height:6px;background:var(--red);border-radius:50%;animation:blink 1.3s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.refresh-pill{display:flex;align-items:center;gap:5px;background:rgba(0,245,255,.06);
+  border:1px solid rgba(0,245,255,.15);border-radius:20px;padding:4px 10px;
+  font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--cyan);letter-spacing:1px;cursor:pointer;transition:all .2s}
+.refresh-pill:hover{background:rgba(0,245,255,.12)}
+.ri.spin{display:inline-block;animation:spin .8s linear infinite}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.clock{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--dim)}
+
+/* ─── SPORT NAV ─── */
+.sportnav{
+  display:flex;padding:0 22px;background:rgba(13,18,25,.95);
+  border-bottom:1px solid rgba(255,255,255,.04);overflow-x:auto;
+  position:sticky;top:52px;z-index:400;
+}
+.sportnav::-webkit-scrollbar{height:0}
+.stab{display:flex;align-items:center;gap:6px;padding:10px 18px;
+  font-family:'Bebas Neue',sans-serif;font-size:.93rem;letter-spacing:2px;
+  cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;
+  color:var(--dim);transition:color .2s,border-color .2s}
+.stab:hover{color:var(--hi)}
+.stab.active{border-bottom-color:var(--cyan);color:var(--cyan)}
+.cnt{background:var(--red);color:#fff;font-family:'JetBrains Mono',monospace;
+  font-size:.54rem;padding:1px 5px;border-radius:10px;margin-left:2px}
+
+/* ─── SORT BAR ─── */
+.sortbar{
+  display:flex;align-items:center;gap:9px;padding:7px 22px;
+  background:rgba(7,9,13,.9);border-bottom:1px solid rgba(255,255,255,.03);
+  position:sticky;top:94px;z-index:300;overflow-x:auto;
+}
+.sortbar::-webkit-scrollbar{height:0}
+.sort-lbl{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--dim);letter-spacing:1.5px;white-space:nowrap}
+.schip{padding:3px 10px;border:1px solid rgba(255,255,255,.09);border-radius:12px;
+  font-size:.65rem;color:var(--dim);cursor:pointer;transition:all .18s;white-space:nowrap;
+  font-family:'JetBrains Mono',monospace}
+.schip:hover{color:var(--hi);border-color:rgba(255,255,255,.22)}
+.schip.active{color:var(--amber);border-color:var(--amber);background:rgba(255,215,0,.07)}
+.upd-badge{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:.56rem;
+  color:var(--dim);white-space:nowrap;display:flex;align-items:center;gap:5px}
+.udot{width:5px;height:5px;background:var(--lime);border-radius:50%;animation:blink 2s infinite}
+
+/* ─── MAIN ─── */
+main{padding:18px 22px 40px}
+.section{margin-bottom:30px}
+.sec-hdr{display:flex;align-items:center;gap:9px;margin-bottom:13px}
+.sec-line{flex:1;height:1px;background:linear-gradient(to right,rgba(0,245,255,.18),transparent)}
+.sec-title{font-family:'Bebas Neue',sans-serif;font-size:1.15rem;letter-spacing:3px}
+.heat-lbl{font-family:'JetBrains Mono',monospace;font-size:.56rem;color:var(--dim)}
+
+/* ─── GRID ─── */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(295px,1fr));gap:15px}
+.empty-state{grid-column:1/-1;text-align:center;padding:36px;color:var(--dim);font-size:.85rem}
+
+/* ─── CARD ─── */
+.card{
+  position:relative;border-radius:16px;overflow:hidden;cursor:pointer;
+  aspect-ratio:16/10;border:1px solid rgba(255,255,255,.06);
+  transition:transform .25s cubic-bezier(.4,0,.2,1),box-shadow .25s;
+}
+.card:hover{transform:translateY(-5px)}
+.card.sf:hover{box-shadow:0 18px 50px rgba(57,255,20,.18)}
+.card.sb:hover{box-shadow:0 18px 50px rgba(255,140,0,.18)}
+.card.sbb:hover{box-shadow:0 18px 50px rgba(191,95,255,.18)}
+.card.hot{box-shadow:0 0 0 1.5px rgba(255,56,96,.5),0 0 25px rgba(255,56,96,.12)}
+.card.hot:hover{box-shadow:0 18px 50px rgba(255,56,96,.3)}
+
+/* venue */
+.venue{position:absolute;inset:0;width:100%;height:100%}
+.cov{position:absolute;inset:0;
+  background:linear-gradient(175deg,rgba(0,0,0,.06) 0%,rgba(0,0,0,0) 35%,rgba(0,0,0,.76) 100%)}
+
+/* heat badge */
+.hbadge{position:absolute;top:10px;right:10px;z-index:4;font-size:.8rem;
+  filter:drop-shadow(0 0 6px rgba(255,100,0,.7));animation:fl 3s ease-in-out infinite}
+@keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+
+/* card top */
+.ctop{position:absolute;top:10px;left:10px;z-index:4;display:flex;align-items:center;gap:6px}
+.lbadge{background:rgba(0,0,0,.78);backdrop-filter:blur(6px);
+  border:1px solid rgba(255,255,255,.1);padding:3px 8px;border-radius:5px;
+  font-size:.58rem;letter-spacing:1px;font-family:'JetBrains Mono',monospace;color:var(--mid)}
+.sbadge{padding:3px 9px;border-radius:5px;font-size:.57rem;
+  font-family:'JetBrains Mono',monospace;font-weight:700;letter-spacing:1px}
+.sl{background:rgba(255,56,96,.9);color:#fff;animation:pr 2s infinite}
+@keyframes pr{0%,100%{box-shadow:0 0 0 0 rgba(255,56,96,.5)}60%{box-shadow:0 0 0 5px rgba(255,56,96,0)}}
+.sf2{background:rgba(0,0,0,.6);color:var(--dim);border:1px solid rgba(255,255,255,.08)}
+.ss{background:rgba(0,245,255,.1);color:var(--cyan);border:1px solid rgba(0,245,255,.2)}
+
+/* rank ribbon */
+.rrib{position:absolute;top:0;left:0;z-index:5;
+  background:linear-gradient(135deg,rgba(255,215,0,.9),rgba(255,140,0,.9));
+  color:#000;font-family:'Bebas Neue',sans-serif;font-size:.68rem;letter-spacing:1px;
+  padding:3px 10px 3px 7px;border-bottom-right-radius:10px}
+
+/* card body */
+.cbody{position:absolute;bottom:0;left:0;right:0;padding:12px 15px;z-index:4}
+.trow{display:flex;align-items:center;justify-content:space-between}
+.tside{display:flex;flex-direction:column;gap:1px}
+.tside.away{align-items:flex-end}
+.tabr{font-family:'Bebas Neue',sans-serif;font-size:1.55rem;letter-spacing:2px;line-height:1;
+  text-shadow:0 2px 10px rgba(0,0,0,.95)}
+.tfull{font-size:.6rem;color:rgba(255,255,255,.52);letter-spacing:.4px;
+  text-shadow:0 1px 4px rgba(0,0,0,.95)}
+.sctr{text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px}
+.smain{font-family:'Bebas Neue',sans-serif;font-size:2.3rem;letter-spacing:6px;line-height:1;
+  text-shadow:0 0 30px rgba(0,0,0,1),0 2px 12px rgba(0,0,0,1)}
+.cg{color:var(--lime)}.co{color:var(--orange)}.cp{color:var(--purple)}
+.ssub{font-family:'JetBrains Mono',monospace;font-size:.58rem;letter-spacing:1px}
+.sg{color:var(--lime)}.so{color:var(--orange)}.sp{color:var(--purple)}
+
+/* prob bar */
+.pbar{height:3px;border-radius:2px;overflow:hidden;margin-top:7px;
+  display:flex;background:rgba(255,255,255,.05)}
+.pbh{background:var(--cyan);transition:width .6s ease}
+.pbd{background:rgba(255,255,255,.2);transition:width .6s ease}
+.pba{background:var(--amber);transition:width .6s ease}
+.sb .pbh{background:var(--orange)}
+.sbb .pbh{background:var(--purple)}
+
+/* ─── TOAST ─── */
+.toast{position:fixed;bottom:22px;right:22px;z-index:8000;
+  background:rgba(13,18,25,.95);border:1px solid rgba(0,245,255,.22);
+  border-radius:10px;padding:9px 15px;
+  font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--cyan);
+  display:flex;align-items:center;gap:7px;
+  transform:translateY(70px);opacity:0;transition:all .3s ease;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* ─── MODAL ─── */
+.modal-bg{
+  display:none;position:fixed;inset:0;background:rgba(7,9,13,.97);
+  z-index:700;backdrop-filter:blur(12px);overflow-y:auto;
+  opacity:0;transform:translateY(20px);
+  transition:opacity .35s ease,transform .35s cubic-bezier(.4,0,.2,1);
+}
+.modal-bg.open{display:block}
+.modal-bg.visible{opacity:1;transform:translateY(0)}
+.mwrap{max-width:1080px;margin:0 auto;padding:14px 18px;min-height:100vh;
+  display:flex;flex-direction:column;gap:13px}
+.mhdr{display:flex;align-items:center;gap:11px;padding:11px 0;
+  border-bottom:1px solid rgba(255,255,255,.06)}
+.backbtn{background:none;border:1px solid rgba(0,245,255,.25);color:var(--cyan);
+  padding:6px 13px;border-radius:6px;cursor:pointer;font-family:'Rajdhani',sans-serif;
+  font-size:.78rem;letter-spacing:1px;transition:all .18s}
+.backbtn:hover{background:rgba(0,245,255,.07)}
+.ml{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--dim);letter-spacing:2px}
+
+/* scoreboard */
+.scoreboard{
+  background:linear-gradient(135deg,#0b1c2e,#091814);
+  border:1px solid rgba(0,245,255,.1);border-radius:16px;padding:22px 26px;
+  position:relative;overflow:hidden}
+.scoreboard::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Ccircle cx='50%25' cy='50%25' r='54' fill='none' stroke='rgba(255,255,255,.03)' stroke-width='1'/%3E%3Ccircle cx='50%25' cy='50%25' r='84' fill='none' stroke='rgba(255,255,255,.022)' stroke-width='1'/%3E%3Cline x1='50%25' y1='0' x2='50%25' y2='100%25' stroke='rgba(255,255,255,.025)' stroke-width='1'/%3E%3C/svg%3E")}
+.sbi{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sbteam{flex:1;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
+.sbc{width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,.07);
+  border:2px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;
+  font-family:'Bebas Neue',sans-serif;font-size:1.15rem}
+.sbn{font-family:'Bebas Neue',sans-serif;font-size:1.35rem;letter-spacing:3px}
+.sbctr{text-align:center;display:flex;flex-direction:column;align-items:center;gap:5px}
+.bigscore{font-family:'Bebas Neue',sans-serif;font-size:3.8rem;line-height:1;letter-spacing:8px;
+  background:linear-gradient(180deg,#fff 0%,rgba(255,255,255,.6) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.timer{font-family:'JetBrains Mono',monospace;font-size:.82rem;letter-spacing:2px}
+.tg{color:var(--lime)}.to{color:var(--orange)}.tp{color:var(--purple)}
+.fin-lbl{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--dim);letter-spacing:3px}
+.prow{display:flex;gap:6px;margin-top:8px}
+.pi{flex:1;text-align:center;background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:6px}
+.pi-lbl{font-size:.54rem;color:var(--dim);letter-spacing:1px;margin-bottom:2px}
+.pi-val{font-family:'Bebas Neue',sans-serif;font-size:1.1rem}
+.pi-h .pi-val{color:var(--cyan)}.pi-d .pi-val{color:rgba(255,255,255,.38)}.pi-a .pi-val{color:var(--amber)}
+
+/* tabs inside modal */
+.modal-tabs{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:0}
+.mtab{padding:9px 18px;font-family:'Bebas Neue',sans-serif;font-size:.9rem;letter-spacing:2px;
+  cursor:pointer;border-bottom:2px solid transparent;color:var(--dim);transition:all .18s;white-space:nowrap}
+.mtab:hover{color:var(--hi)}
+.mtab.active{color:var(--cyan);border-bottom-color:var(--cyan)}
+.tab-content{display:none;animation:fadeIn .3s ease}
+.tab-content.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* detail grid */
+.dgrid{display:grid;grid-template-columns:1fr 285px;gap:12px}
+@media(max-width:680px){.dgrid{grid-template-columns:1fr}}
+.panel{background:var(--ink3);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:15px}
+.ptitle{font-family:'Bebas Neue',sans-serif;font-size:.95rem;letter-spacing:3px;
+  color:var(--cyan);margin-bottom:11px;padding-bottom:7px;border-bottom:1px solid rgba(0,245,255,.1)}
+
+/* stats */
+.srow{display:grid;grid-template-columns:1fr auto 1fr;gap:7px;align-items:center;margin-bottom:8px}
+.svh{text-align:right;font-family:'JetBrains Mono',monospace;font-size:.76rem;font-weight:700}
+.sva{font-family:'JetBrains Mono',monospace;font-size:.76rem;font-weight:700}
+.slbl{text-align:center;font-size:.6rem;color:var(--dim);letter-spacing:.6px;white-space:nowrap}
+.bw{height:3px;border-radius:2px;overflow:hidden;margin-top:2px;grid-column:1/-1;
+  background:rgba(255,255,255,.05);display:flex}
+.bh{background:linear-gradient(90deg,var(--cyan),rgba(0,245,255,.4));transition:width .6s}
+.ba{background:linear-gradient(90deg,rgba(255,215,0,.4),var(--amber));transition:width .6s}
+
+/* feed */
+.fscroll{max-height:320px;overflow-y:auto;padding-right:2px}
+.fscroll::-webkit-scrollbar{width:2px}
+.fscroll::-webkit-scrollbar-thumb{background:rgba(0,245,255,.2);border-radius:2px}
+.fev{display:flex;gap:7px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.035);animation:fu .3s}
+@keyframes fu{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+.fmin{font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--lime);min-width:26px;margin-top:2px}
+.fico{font-size:.85rem;min-width:16px}
+.ftxt{font-size:.74rem;line-height:1.4}
+.ftxt.goal{color:var(--lime);font-weight:700}
+.ftxt.pts{color:var(--orange);font-weight:700}
+.ftxt.hit{color:var(--purple);font-weight:700}
+
+/* watch */
+.wbar{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.wbtn{display:flex;align-items:center;gap:5px;padding:6px 11px;
+  border:1px solid rgba(255,255,255,.1);border-radius:7px;font-size:.68rem;
+  text-decoration:none;color:var(--hi);transition:all .18s;
+  font-family:'Rajdhani',sans-serif;font-weight:600;background:rgba(255,255,255,.03)}
+.wbtn:hover{border-color:var(--cyan);color:var(--cyan);background:rgba(0,245,255,.04)}
+.wnote{font-size:.6rem;color:var(--dim);margin-top:5px;font-family:'JetBrains Mono',monospace}
+
+/* ─── LINEUP / FORMATION ─── */
+.lineup-wrap{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.lineup-wrap{grid-template-columns:1fr}}
+
+/* FOOTBALL FORMATION FIELD */
+.formation-field{
+  position:relative;border-radius:10px;overflow:hidden;
+  aspect-ratio:3/4;border:1px solid rgba(255,255,255,.08);
+}
+.form-pitch{position:absolute;inset:0}
+.form-pitch svg{width:100%;height:100%}
+.player-dot{position:absolute;transform:translate(-50%,-50%);
+  display:flex;flex-direction:column;align-items:center;gap:2px;cursor:default}
+.pdot{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.6);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Bebas Neue',sans-serif;font-size:.55rem;letter-spacing:.5px;
+  box-shadow:0 2px 8px rgba(0,0,0,.6);transition:transform .2s}
+.pdot:hover{transform:scale(1.3)}
+.pname{font-size:.45rem;color:rgba(255,255,255,.8);white-space:nowrap;
+  text-shadow:0 1px 3px rgba(0,0,0,.9);letter-spacing:.3px;
+  background:rgba(0,0,0,.5);padding:1px 3px;border-radius:3px}
+
+/* BASKETBALL COURT LINEUP */
+.bk-court-wrap{
+  position:relative;border-radius:10px;overflow:hidden;
+  aspect-ratio:3/4;border:1px solid rgba(255,255,255,.08);
+}
+.bk-court{position:absolute;inset:0}
+.bk-court svg{width:100%;height:100%}
+
+/* BASEBALL DIAMOND LINEUP */
+.bb-diamond-wrap{
+  position:relative;border-radius:10px;overflow:hidden;
+  aspect-ratio:4/4;border:1px solid rgba(255,255,255,.08);
+}
+.bb-diamond{position:absolute;inset:0}
+.bb-diamond svg{width:100%;height:100%}
+
+/* sub list */
+.sub-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.sub-item{display:flex;align-items:center;gap:8px;padding:6px 10px;
+  background:rgba(255,255,255,.03);border-radius:7px;border:1px solid rgba(255,255,255,.05)}
+.sub-ico{font-size:.85rem}
+.sub-txt{font-size:.74rem;line-height:1.3;color:var(--hi)}
+.sub-time{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--dim);margin-left:auto}
+.lineup-col-title{font-family:'Bebas Neue',sans-serif;font-size:.85rem;letter-spacing:2px;
+  color:var(--mid);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.team-color-dot{width:8px;height:8px;border-radius:50%}
+
+/* AI */
+.aipanel{background:linear-gradient(135deg,rgba(0,245,255,.025),rgba(57,255,20,.015));
+  border:1px solid rgba(0,245,255,.12);border-radius:12px;padding:15px;grid-column:1/-1}
+.aihdr{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+.aiico{width:29px;height:29px;background:linear-gradient(135deg,var(--cyan),var(--lime));
+  border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.85rem}
+.aititle{font-family:'Bebas Neue',sans-serif;font-size:.92rem;letter-spacing:3px;color:var(--cyan)}
+.aisub{font-size:.58rem;color:var(--dim);margin-top:1px}
+.chips2{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.chip2{padding:3px 9px;border:1px solid rgba(0,245,255,.15);border-radius:20px;
+  font-size:.62rem;color:var(--dim);cursor:pointer;transition:all .18s;
+  font-family:'JetBrains Mono',monospace}
+.chip2:hover{border-color:var(--cyan);color:var(--cyan);background:rgba(0,245,255,.05)}
+.aichat{display:flex;flex-direction:column;gap:7px;max-height:220px;overflow-y:auto;
+  margin-bottom:10px;padding-right:2px}
+.aichat::-webkit-scrollbar{width:2px}
+.aichat::-webkit-scrollbar-thumb{background:rgba(0,245,255,.2);border-radius:2px}
+.bub{padding:7px 11px;border-radius:9px;font-size:.78rem;line-height:1.5;
+  max-width:88%;animation:fu .3s}
+.buser{align-self:flex-end;background:rgba(0,245,255,.08);border:1px solid rgba(0,245,255,.14)}
+.bai{align-self:flex-start;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06)}
+.bai-nm{font-size:.57rem;color:var(--cyan);font-family:'JetBrains Mono',monospace;
+  margin-bottom:3px;letter-spacing:1px}
+.typing{display:flex;gap:4px;align-items:center;padding:7px 11px;align-self:flex-start}
+.td{width:5px;height:5px;background:var(--cyan);border-radius:50%;animation:td 1.2s infinite}
+.td:nth-child(2){animation-delay:.2s}.td:nth-child(3){animation-delay:.4s}
+@keyframes td{0%,100%{opacity:.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
+.airow{display:flex;gap:7px}
+.aiinp{flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(0,245,255,.14);
+  border-radius:7px;padding:7px 11px;color:var(--hi);
+  font-family:'Rajdhani',sans-serif;font-size:.83rem;outline:none;transition:border-color .18s}
+.aiinp:focus{border-color:var(--cyan)}
+.aiinp::placeholder{color:var(--dim)}
+.aisend{background:linear-gradient(135deg,var(--cyan),var(--lime));border:none;
+  border-radius:7px;padding:7px 13px;color:#000;font-family:'Bebas Neue',sans-serif;
+  font-size:.82rem;letter-spacing:1px;cursor:pointer;transition:opacity .18s}
+.aisend:hover{opacity:.85}.aisend:disabled{opacity:.35;cursor:not-allowed}
+
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.07);border-radius:4px}
+</style>
+</head>
+<body>
+
+<!-- BALL ANIMATION OVERLAY -->
+<div id="ballOverlay">
+  <div class="ball-anim" id="ballAnim"></div>
+</div>
+
+<div id="pageWrap">
+<header>
+  <div class="logo">SportsPulse</div>
+  <div class="hdr-mid">
+    <div class="live-pill"><div class="ldot"></div>EN VIVO</div>
+    <div class="refresh-pill" onclick="manualRefresh()">
+      <span id="ri" class="ri">↻</span> REFRESH
+    </div>
+  </div>
+  <div class="clock" id="clock">--:--:--</div>
+</header>
+
+<div class="sportnav">
+  <div class="stab active" data-s="all" onclick="switchSport('all')">🏆 TODOS</div>
+  <div class="stab" data-s="football" onclick="switchSport('football')">⚽ FÚTBOL <span class="cnt" id="cnt-football">0</span></div>
+  <div class="stab" data-s="basketball" onclick="switchSport('basketball')">🏀 BÁSQUETBOL <span class="cnt" id="cnt-basketball">0</span></div>
+  <div class="stab" data-s="baseball" onclick="switchSport('baseball')">⚾ BÉISBOL <span class="cnt" id="cnt-baseball">0</span></div>
+</div>
+
+<div class="sortbar">
+  <span class="sort-lbl">ORDENAR:</span>
+  <div class="schip active" data-sort="heat" onclick="setSort('heat')">🔥 TOP</div>
+  <div class="schip" data-sort="close" onclick="setSort('close')">⚡ MÁS CERRADO</div>
+  <div class="schip" data-sort="goals" onclick="setSort('goals')">🎯 MÁS GOLES</div>
+  <div class="schip" data-sort="prestige" onclick="setSort('prestige')">⭐ PRESTIGIO</div>
+  <div class="upd-badge" id="updBadge"><div class="udot"></div>Actualizado ahora</div>
+</div>
+
+<main>
+  <div class="section">
+    <div class="sec-hdr">
+      <div class="ldot" style="width:9px;height:9px;background:var(--red)"></div>
+      <div class="sec-title">EN VIVO AHORA</div>
+      <div class="sec-line"></div>
+      <div class="heat-lbl" id="sortLbl">TOP por calor</div>
+    </div>
+    <div class="grid" id="liveGrid"></div>
+  </div>
+  <div class="section">
+    <div class="sec-hdr">
+      <div class="sec-title" style="color:var(--mid)">RECIENTES</div>
+      <div class="sec-line"></div>
+    </div>
+    <div class="grid" id="recentGrid"></div>
+  </div>
+  <div class="section">
+    <div class="sec-hdr">
+      <div class="sec-title" style="color:var(--cyan)">PRÓXIMOS</div>
+      <div class="sec-line"></div>
+    </div>
+    <div class="grid" id="upcomingGrid"></div>
+  </div>
+</main>
+</div><!-- end pageWrap -->
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal">
+  <div class="mwrap">
+    <div class="mhdr">
+      <button class="backbtn" onclick="closeModal()">← VOLVER</button>
+      <div class="ml" id="mLg"></div>
+      <div class="live-pill" id="mLP" style="display:none"><div class="ldot"></div>EN VIVO</div>
+    </div>
+
+    <!-- SCOREBOARD -->
+    <div class="scoreboard">
+      <div class="sbi">
+        <div class="sbteam"><div class="sbc" id="mHB"></div><div class="sbn" id="mHN"></div></div>
+        <div class="sbctr">
+          <div class="bigscore" id="mSc">0—0</div>
+          <div id="mSt"></div>
+          <div id="mPR" class="prow" style="display:none">
+            <div class="pi pi-h"><div class="pi-lbl">LOCAL</div><div class="pi-val" id="pH"></div></div>
+            <div class="pi pi-d"><div class="pi-lbl">EMPATE</div><div class="pi-val" id="pD"></div></div>
+            <div class="pi pi-a"><div class="pi-lbl">VISITANTE</div><div class="pi-val" id="pA"></div></div>
+          </div>
+        </div>
+        <div class="sbteam"><div class="sbc" id="mAB"></div><div class="sbn" id="mAN"></div></div>
+      </div>
+    </div>
+
+    <!-- MODAL TABS -->
+    <div class="modal-tabs">
+      <div class="mtab active" onclick="showTab('stats')">📊 ESTADÍSTICAS</div>
+      <div class="mtab" onclick="showTab('lineup')">👥 ALINEACIÓN</div>
+      <div class="mtab" onclick="showTab('feed')">⚡ EN VIVO</div>
+      <div class="mtab" onclick="showTab('watch')">📺 VER</div>
+      <div class="mtab" onclick="showTab('ai')">🤖 IA</div>
+    </div>
+
+    <!-- TAB: ESTADÍSTICAS + FEED -->
+    <div class="tab-content active" id="tab-stats">
+      <div class="dgrid" style="margin-top:12px">
+        <div class="panel"><div class="ptitle">📊 ESTADÍSTICAS</div><div id="statsW"></div></div>
+        <div class="panel"><div class="ptitle" id="feedTitle">⚡ MINUTO A MINUTO</div><div class="fscroll" id="feedScroll"></div></div>
+      </div>
+    </div>
+
+    <!-- TAB: ALINEACIÓN -->
+    <div class="tab-content" id="tab-lineup">
+      <div class="panel" style="margin-top:12px">
+        <div class="ptitle">👥 ALINEACIÓN Y POSICIONES</div>
+        <div id="lineupContent"></div>
+        <div style="margin-top:14px">
+          <div class="ptitle">🔄 CAMBIOS Y SUSTITUCIONES</div>
+          <div id="subsContent"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: FEED -->
+    <div class="tab-content" id="tab-feed">
+      <div class="panel" style="margin-top:12px">
+        <div class="ptitle" id="feedTitle2">⚡ MINUTO A MINUTO</div>
+        <div class="fscroll" id="feedScroll2"></div>
+      </div>
+    </div>
+
+    <!-- TAB: WATCH -->
+    <div class="tab-content" id="tab-watch">
+      <div class="panel" style="margin-top:12px">
+        <div class="ptitle">📺 DÓNDE VER</div>
+        <div class="wbar" id="wBar"></div>
+        <div class="wnote" style="margin-top:8px">* Requiere suscripción. Disponibilidad varía por región.</div>
+      </div>
+    </div>
+
+    <!-- TAB: AI -->
+    <div class="tab-content" id="tab-ai">
+      <div class="aipanel" style="grid-column:unset;margin-top:12px">
+        <div class="aihdr">
+          <div class="aiico">🤖</div>
+          <div><div class="aititle">PULSE AI — ANÁLISIS EN VIVO</div><div class="aisub">IA experta en deportes • Contexto completo del partido</div></div>
+        </div>
+        <div class="chips2" id="aiChips"></div>
+        <div class="aichat" id="aiChat"><div class="bub bai"><div class="bai-nm">PULSE AI</div>¡Selecciona un partido para empezar el análisis!</div></div>
+        <div class="airow">
+          <input class="aiinp" id="aiIn" placeholder="Pregunta sobre el partido..." onkeydown="if(event.key==='Enter')sendAI()">
+          <button class="aisend" id="aiBtn" onclick="sendAI()">ENVIAR</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast">↻ Datos actualizados</div>
+
+<script>
+// ════════════════════════════════════════
+//  VENUE SVGs
+// ════════════════════════════════════════
+
+function footballSVG(){
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%">
+    <defs>
+      <linearGradient id="gf" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a5c2e"/><stop offset="100%" stop-color="#144d25"/></linearGradient>
+      <pattern id="sp" x="0" y="0" width="40" height="250" patternUnits="userSpaceOnUse"><rect width="20" height="250" fill="rgba(0,0,0,.06)"/></pattern>
+    </defs>
+    <rect width="400" height="250" fill="url(#gf)"/>
+    <rect width="400" height="250" fill="url(#sp)"/>
+    <rect x="13" y="13" width="374" height="224" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.8"/>
+    <line x1="200" y1="13" x2="200" y2="237" stroke="rgba(255,255,255,.5)" stroke-width="1.4"/>
+    <circle cx="200" cy="125" r="40" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.4"/>
+    <circle cx="200" cy="125" r="2.5" fill="rgba(255,255,255,.7)"/>
+    <rect x="13" y="72" width="65" height="106" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.45)" stroke-width="1.4"/>
+    <rect x="13" y="95" width="26" height="60" fill="rgba(255,255,255,.03)" stroke="rgba(255,255,255,.3)" stroke-width="1.2"/>
+    <rect x="4" y="108" width="9" height="34" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.4"/>
+    <path d="M 78 90 A 36 36 0 0 1 78 160" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.2" stroke-dasharray="3 4"/>
+    <circle cx="52" cy="125" r="2" fill="rgba(255,255,255,.55)"/>
+    <rect x="322" y="72" width="65" height="106" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.45)" stroke-width="1.4"/>
+    <rect x="361" y="95" width="26" height="60" fill="rgba(255,255,255,.03)" stroke="rgba(255,255,255,.3)" stroke-width="1.2"/>
+    <rect x="387" y="108" width="9" height="34" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.4"/>
+    <path d="M 322 90 A 36 36 0 0 0 322 160" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.2" stroke-dasharray="3 4"/>
+    <circle cx="348" cy="125" r="2" fill="rgba(255,255,255,.55)"/>
+    <path d="M 13 23 A 10 10 0 0 1 23 13" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.2"/>
+    <path d="M 377 13 A 10 10 0 0 1 387 23" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.2"/>
+    <path d="M 387 227 A 10 10 0 0 1 377 237" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.2"/>
+    <path d="M 23 237 A 10 10 0 0 1 13 227" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.2"/>
+  </svg>`;
+}
+
+function basketballSVG(){
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%">
+    <defs>
+      <linearGradient id="gb" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7a3d0a"/><stop offset="100%" stop-color="#5c2d06"/></linearGradient>
+    </defs>
+    <rect width="400" height="250" fill="url(#gb)"/>
+    <line x1="0" y1="31" x2="400" y2="31" stroke="rgba(255,255,255,.055)" stroke-width="1"/>
+    <line x1="0" y1="62" x2="400" y2="62" stroke="rgba(255,255,255,.055)" stroke-width="1"/>
+    <line x1="0" y1="93" x2="400" y2="93" stroke="rgba(255,255,255,.055)" stroke-width="1"/>
+    <line x1="0" y1="124" x2="400" y2="124" stroke="rgba(255,255,255,.055)" stroke-width="1"/>
+    <line x1="0" y1="155" x2="400" y2="155" stroke="rgba(255,255,255,.055)" stroke-width="1"/>
+    <line x1="0" y1="186" x2="400" y2="186" stroke="rgba(255,255,255,.055)" stroke-width="1"/>
+    <line x1="0" y1="217" x2="400" y2="217" stroke="rgba(255,255,255,.055)" stroke-width="1"/>
+    <rect x="11" y="11" width="378" height="228" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="2"/>
+    <line x1="200" y1="11" x2="200" y2="239" stroke="rgba(255,255,255,.55)" stroke-width="1.5"/>
+    <circle cx="200" cy="125" r="34" fill="rgba(255,140,0,.06)" stroke="rgba(255,255,255,.55)" stroke-width="1.5"/>
+    <circle cx="200" cy="125" r="3" fill="rgba(255,255,255,.6)"/>
+    <rect x="11" y="75" width="86" height="100" fill="rgba(255,140,0,.1)" stroke="rgba(255,255,255,.5)" stroke-width="1.5"/>
+    <path d="M 11 75 A 50 50 0 0 1 97 75" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1.3" stroke-dasharray="4 5"/>
+    <path d="M 11 175 A 50 50 0 0 0 97 175" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.3"/>
+    <path d="M 42 108 A 20 20 0 0 1 42 142" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.2"/>
+    <rect x="11" y="113" width="5" height="24" fill="rgba(255,255,255,.45)"/>
+    <circle cx="30" cy="125" r="9" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.5"/>
+    <path d="M 11 34 L 102 34 A 103 103 0 0 1 102 216 L 11 216" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="1.5"/>
+    <rect x="303" y="75" width="86" height="100" fill="rgba(255,140,0,.1)" stroke="rgba(255,255,255,.5)" stroke-width="1.5"/>
+    <path d="M 389 75 A 50 50 0 0 0 303 75" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1.3" stroke-dasharray="4 5"/>
+    <path d="M 389 175 A 50 50 0 0 1 303 175" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.3"/>
+    <path d="M 358 108 A 20 20 0 0 0 358 142" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.2"/>
+    <rect x="384" y="113" width="5" height="24" fill="rgba(255,255,255,.45)"/>
+    <circle cx="370" cy="125" r="9" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.5"/>
+    <path d="M 389 34 L 298 34 A 103 103 0 0 0 298 216 L 389 216" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="1.5"/>
+  </svg>`;
+}
+
+// BASEBALL STADIUM — exact horseshoe/fan shape matching reference image
+function baseballSVG(){
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%">
+    <defs>
+      <radialGradient id="bbGrass" cx="50%" cy="85%" r="75%">
+        <stop offset="0%" stop-color="#3a8c28"/>
+        <stop offset="45%" stop-color="#2d7020"/>
+        <stop offset="100%" stop-color="#1c4e14"/>
+      </radialGradient>
+      <radialGradient id="bbDirt" cx="50%" cy="50%" r="55%">
+        <stop offset="0%" stop-color="#c49840"/>
+        <stop offset="100%" stop-color="#9a7428"/>
+      </radialGradient>
+      <!-- Diamond/checkerboard pattern rotated 45° matching the image -->
+      <pattern id="bbCheck" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse" patternTransform="rotate(45 200 150)">
+        <rect width="10" height="10" fill="rgba(0,0,0,.11)"/>
+        <rect x="10" y="0" width="10" height="10" fill="rgba(255,255,255,.0)"/>
+        <rect x="0" y="10" width="10" height="10" fill="rgba(255,255,255,.0)"/>
+        <rect x="10" y="10" width="10" height="10" fill="rgba(0,0,0,.11)"/>
+      </pattern>
+      <!-- Radial stripes for depth -->
+      <pattern id="bbStripes" x="0" y="0" width="32" height="300" patternUnits="userSpaceOnUse">
+        <rect width="16" height="300" fill="rgba(0,0,0,.055)"/>
+      </pattern>
+      <clipPath id="stadiumClip">
+        <!-- Horseshoe outer shape: wide fan top, notch at bottom for home plate -->
+        <path d="M 200 300
+                 L 165 300 L 160 285 L 155 278
+                 L 18 278 L 14 220
+                 Q 8 160 12 110
+                 Q 18 55 60 22
+                 Q 110 -2 200 0
+                 Q 290 -2 340 22
+                 Q 382 55 388 110
+                 Q 392 160 386 220
+                 L 382 278 L 245 278
+                 L 240 285 L 235 300 Z"/>
+      </clipPath>
+    </defs>
+
+    <!-- ── BACKGROUND fill for areas outside clip ── -->
+    <rect width="400" height="300" fill="#111"/>
+
+    <!-- ── OUTER WARNING TRACK (tan border) ── -->
+    <g clip-path="url(#stadiumClip)">
+      <rect width="400" height="300" fill="#c49840"/>
+    </g>
+
+    <!-- ── INNER GRASS FAN (inset 14px from warning track) ── -->
+    <clipPath id="grassClip">
+      <path d="M 200 294
+               L 168 294 L 163 281 L 158 275
+               L 32 275 L 28 220
+               Q 22 162 26 114
+               Q 32 62 70 31
+               Q 118 8 200 6
+               Q 282 8 330 31
+               Q 368 62 374 114
+               Q 378 162 372 220
+               L 368 275 L 242 275
+               L 237 281 L 232 294 Z"/>
+    </clipPath>
+    <g clip-path="url(#grassClip)">
+      <rect width="400" height="300" fill="url(#bbGrass)"/>
+      <!-- checkerboard diamond pattern -->
+      <rect width="400" height="300" fill="url(#bbCheck)"/>
+      <!-- radial stripes -->
+      <rect width="400" height="300" fill="url(#bbStripes)"/>
+    </g>
+
+    <!-- ── INFIELD DIRT DIAMOND ── -->
+    <!-- Large rotated square: home(200,268), 1st(302,186), 2nd(200,104), 3rd(98,186) -->
+    <polygon points="200,268 302,186 200,104 98,186" fill="url(#bbDirt)" clip-path="url(#grassClip)"/>
+
+    <!-- ── INFIELD GRASS CIRCLE inside dirt ── -->
+    <circle cx="200" cy="186" r="60" fill="#2d7020" clip-path="url(#grassClip)"/>
+    <!-- subtle checker on infield grass too -->
+    <circle cx="200" cy="186" r="60" fill="url(#bbCheck)" opacity=".5" clip-path="url(#grassClip)"/>
+
+    <!-- ── FOUL LINES (from home through infield to wall) ── -->
+    <line x1="200" y1="268" x2="28" y2="114" stroke="rgba(255,255,255,.75)" stroke-width="1.8" clip-path="url(#grassClip)"/>
+    <line x1="200" y1="268" x2="372" y2="114" stroke="rgba(255,255,255,.75)" stroke-width="1.8" clip-path="url(#grassClip)"/>
+
+    <!-- ── BASELINE LINES ── -->
+    <line x1="200" y1="268" x2="302" y2="186" stroke="rgba(255,255,255,.8)" stroke-width="1.8"/>
+    <line x1="302" y1="186" x2="200" y2="104" stroke="rgba(255,255,255,.8)" stroke-width="1.8"/>
+    <line x1="200" y1="104" x2="98" y2="186" stroke="rgba(255,255,255,.8)" stroke-width="1.8"/>
+    <line x1="98" y1="186" x2="200" y2="268" stroke="rgba(255,255,255,.8)" stroke-width="1.8"/>
+
+    <!-- ── PITCHER MOUND ── -->
+    <ellipse cx="200" cy="189" rx="14" ry="11" fill="#b88c36" stroke="rgba(255,255,255,.35)" stroke-width="1.2"/>
+    <circle cx="200" cy="189" r="3" fill="white" opacity=".8"/>
+
+    <!-- ── BASES ── -->
+    <!-- 2nd base (top of diamond) -->
+    <rect x="193" y="97" width="14" height="14" rx="1" fill="white" opacity=".95" transform="rotate(45,200,104)"/>
+    <!-- 1st base (right) -->
+    <rect x="295" y="179" width="14" height="14" rx="1" fill="white" opacity=".95" transform="rotate(45,302,186)"/>
+    <!-- 3rd base (left) -->
+    <rect x="91" y="179" width="14" height="14" rx="1" fill="white" opacity=".95" transform="rotate(45,98,186)"/>
+    <!-- Home plate (pentagon) -->
+    <polygon points="200,269 193,263 193,255 207,255 207,263" fill="white" opacity=".95"/>
+
+    <!-- ── BATTER BOXES ── -->
+    <rect x="183" y="256" width="12" height="17" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.3"/>
+    <rect x="205" y="256" width="12" height="17" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.3"/>
+    <!-- Catcher box -->
+    <rect x="187" y="273" width="26" height="11" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.1"/>
+
+    <!-- ── OUTFIELD FENCE ARC line ── -->
+    <path d="M 32 275 Q 200 50 368 275" fill="none" stroke="rgba(180,220,100,.5)" stroke-width="2" clip-path="url(#grassClip)"/>
+
+    <!-- ── WARNING TRACK inner edge arc ── -->
+    <path d="M 32 275 Q 200 58 368 275" fill="none" stroke="rgba(196,152,64,.7)" stroke-width="8" clip-path="url(#stadiumClip)"/>
+    <path d="M 42 275 Q 200 68 358 275" fill="none" stroke="url(#bbGrass)" stroke-width="6" clip-path="url(#stadiumClip)"/>
+  </svg>`;
+}
+
+// ════════════════════════════════════════
+//  FORMATION SVGs for lineup
+// ════════════════════════════════════════
+function formationPitchSVG(){
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 280" style="position:absolute;inset:0;width:100%;height:100%">
+    <defs>
+      <linearGradient id="fgf" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a5c2e"/><stop offset="100%" stop-color="#144d25"/></linearGradient>
+      <pattern id="fsp" x="0" y="0" width="20" height="280" patternUnits="userSpaceOnUse"><rect width="10" height="280" fill="rgba(0,0,0,.07)"/></pattern>
+    </defs>
+    <rect width="200" height="280" fill="url(#fgf)"/>
+    <rect width="200" height="280" fill="url(#fsp)"/>
+    <rect x="6" y="6" width="188" height="268" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.4"/>
+    <line x1="6" y1="140" x2="194" y2="140" stroke="rgba(255,255,255,.4)" stroke-width="1.2"/>
+    <circle cx="100" cy="140" r="25" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.2"/>
+    <rect x="6" y="115" width="30" height="50" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1"/>
+    <rect x="164" y="115" width="30" height="50" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1"/>
+    <rect x="6" y="8" width="70" height="45" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="1"/>
+    <rect x="124" y="8" width="70" height="45" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="1"/>
+  </svg>`;
+}
+
+function courtSVG(){
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 280" style="position:absolute;inset:0;width:100%;height:100%">
+    <defs><linearGradient id="cgb" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7a3d0a"/><stop offset="100%" stop-color="#5c2d06"/></linearGradient></defs>
+    <rect width="200" height="280" fill="url(#cgb)"/>
+    <rect x="6" y="6" width="188" height="268" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.5"/>
+    <line x1="6" y1="140" x2="194" y2="140" stroke="rgba(255,255,255,.45)" stroke-width="1.3"/>
+    <circle cx="100" cy="140" r="22" fill="rgba(255,140,0,.06)" stroke="rgba(255,255,255,.4)" stroke-width="1.2"/>
+    <!-- top key -->
+    <rect x="62" y="6" width="76" height="70" fill="rgba(255,140,0,.1)" stroke="rgba(255,255,255,.4)" stroke-width="1.2"/>
+    <path d="M 62 76 A 38 38 0 0 0 138 76" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1.1"/>
+    <circle cx="100" cy="30" r="8" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.2"/>
+    <!-- bottom key -->
+    <rect x="62" y="204" width="76" height="70" fill="rgba(255,140,0,.1)" stroke="rgba(255,255,255,.4)" stroke-width="1.2"/>
+    <path d="M 62 204 A 38 38 0 0 1 138 204" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1.1"/>
+    <circle cx="100" cy="250" r="8" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.2"/>
+    <!-- 3pt arcs -->
+    <path d="M 16 90 A 80 80 0 0 0 16 55" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1" stroke-dasharray="3 3"/>
+    <path d="M 184 90 A 80 80 0 0 1 184 55" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1" stroke-dasharray="3 3"/>
+    <path d="M 184 190 A 80 80 0 0 0 184 225" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1" stroke-dasharray="3 3"/>
+    <path d="M 16 190 A 80 80 0 0 1 16 225" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1" stroke-dasharray="3 3"/>
+  </svg>`;
+}
+
+function diamondSVG(){
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" style="position:absolute;inset:0;width:100%;height:100%">
+    <defs>
+      <radialGradient id="ddGrass" cx="50%" cy="80%" r="75%">
+        <stop offset="0%" stop-color="#3a8c28"/><stop offset="100%" stop-color="#1c4e14"/>
+      </radialGradient>
+      <radialGradient id="ddDirt" cx="50%" cy="50%" r="55%">
+        <stop offset="0%" stop-color="#c49840"/><stop offset="100%" stop-color="#9a7428"/>
+      </radialGradient>
+      <pattern id="ddCheck" x="0" y="0" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45 100 100)">
+        <rect width="6" height="6" fill="rgba(0,0,0,.12)"/>
+        <rect x="6" y="6" width="6" height="6" fill="rgba(0,0,0,.12)"/>
+      </pattern>
+      <clipPath id="ddClip">
+        <path d="M 100 198 L 82 198 L 79 192 L 77 188
+                 L 8 188 L 6 155 Q 3 115 6 82
+                 Q 10 45 32 22 Q 58 3 100 2
+                 Q 142 3 168 22 Q 190 45 194 82
+                 Q 197 115 194 155 L 192 188
+                 L 123 188 L 121 192 L 118 198 Z"/>
+      </clipPath>
+      <clipPath id="ddGrassClip">
+        <path d="M 100 194 L 84 194 L 81 188 L 79 184
+                 L 14 184 L 12 152 Q 9 113 12 82
+                 Q 16 48 36 26 Q 61 8 100 7
+                 Q 139 8 164 26 Q 184 48 188 82
+                 Q 191 113 188 152 L 186 184
+                 L 121 184 L 119 188 L 116 194 Z"/>
+      </clipPath>
+    </defs>
+    <!-- warning track tan -->
+    <g clip-path="url(#ddClip)"><rect width="200" height="200" fill="#c49840"/></g>
+    <!-- grass fan -->
+    <g clip-path="url(#ddGrassClip)">
+      <rect width="200" height="200" fill="url(#ddGrass)"/>
+      <rect width="200" height="200" fill="url(#ddCheck)"/>
+    </g>
+    <!-- infield dirt diamond -->
+    <polygon points="100,50 150,100 100,150 50,100" fill="url(#ddDirt)" clip-path="url(#ddGrassClip)"/>
+    <!-- infield grass -->
+    <circle cx="100" cy="100" r="30" fill="#2d7020" clip-path="url(#ddGrassClip)"/>
+    <circle cx="100" cy="100" r="30" fill="url(#ddCheck)" opacity=".4" clip-path="url(#ddGrassClip)"/>
+    <!-- baselines -->
+    <line x1="100" y1="150" x2="150" y2="100" stroke="rgba(255,255,255,.8)" stroke-width="1.2"/>
+    <line x1="150" y1="100" x2="100" y2="50" stroke="rgba(255,255,255,.8)" stroke-width="1.2"/>
+    <line x1="100" y1="50" x2="50" y2="100" stroke="rgba(255,255,255,.8)" stroke-width="1.2"/>
+    <line x1="50" y1="100" x2="100" y2="150" stroke="rgba(255,255,255,.8)" stroke-width="1.2"/>
+    <!-- foul lines -->
+    <line x1="100" y1="150" x2="14" y2="78" stroke="rgba(255,255,255,.6)" stroke-width="1" clip-path="url(#ddGrassClip)"/>
+    <line x1="100" y1="150" x2="186" y2="78" stroke="rgba(255,255,255,.6)" stroke-width="1" clip-path="url(#ddGrassClip)"/>
+    <!-- pitcher mound -->
+    <ellipse cx="100" cy="102" rx="8" ry="6" fill="#b88c36" stroke="rgba(255,255,255,.4)" stroke-width="1"/>
+    <circle cx="100" cy="102" r="2" fill="white" opacity=".8"/>
+    <!-- bases -->
+    <rect x="95" y="44" width="10" height="10" rx="1" fill="white" opacity=".95" transform="rotate(45,100,49)"/>
+    <rect x="144" y="94" width="10" height="10" rx="1" fill="white" opacity=".95" transform="rotate(45,149,99)"/>
+    <rect x="46" y="94" width="10" height="10" rx="1" fill="white" opacity=".95" transform="rotate(45,51,99)"/>
+    <polygon points="100,151 95,146 95,140 105,140 105,146" fill="white" opacity=".95"/>
+  </svg>`;
+}
+
+// ════════════════════════════════════════
+//  MATCH DATA
+// ════════════════════════════════════════
+const PRESTIGE={
+  'Champions League':100,'La Liga':90,'Premier League':90,
+  'NBA':95,'MLB':80,'Clásico Mundial':85,
+};
+const STARS={
+  BAR:10,RMA:10,MCI:9,LFC:9,ARS:9,ATM:9,PSG:9,
+  BOS:9,LAL:9,GSW:9,OKC:8,NYK:8,CFC:8,
+  NYY:9,LAD:9,DOM:9,VEN:8,USA:9,
+};
+const WATCH_URLS={
+  'ESPN+':'https://www.espnplus.com','ESPN':'https://www.espn.com/watch',
+  'DAZN':'https://www.dazn.com','Movistar+':'https://ver.movistarplus.es',
+  'Sky Sports':'https://www.skysports.com/watch','TNT':'https://www.tntdrama.com/live-tv',
+  'NBA League Pass':'https://www.nba.com/watch','Fox Sports':'https://www.foxsports.com/live',
+  'Apple TV+':'https://tv.apple.com','MLB.TV':'https://www.mlb.com/tv',
+  'HBO Max':'https://www.max.com',
+};
+
+let MATCHES=[
+  {id:'fl1',sport:'football',league:'Champions League',status:'live',minute:67,home:{abbr:'MCI',name:'Manchester City'},away:{abbr:'BAR',name:'FC Barcelona'},score:{home:1,away:2},prob:{home:28,draw:22,away:50},watch:['ESPN+','DAZN']},
+  {id:'fl2',sport:'football',league:'Champions League',status:'live',minute:41,home:{abbr:'ATM',name:'Atletico Madrid'},away:{abbr:'TOT',name:'Tottenham'},score:{home:2,away:0},prob:{home:88,draw:9,away:3},watch:['DAZN','HBO Max']},
+  {id:'fl3',sport:'football',league:'Premier League',status:'live',minute:82,home:{abbr:'ARS',name:'Arsenal FC'},away:{abbr:'CFC',name:'Chelsea FC'},score:{home:1,away:1},prob:{home:44,draw:30,away:26},watch:['ESPN+','Sky Sports']},
+  {id:'fl4',sport:'football',league:'La Liga',status:'live',minute:55,home:{abbr:'BAR',name:'FC Barcelona'},away:{abbr:'RMA',name:'Real Madrid'},score:{home:1,away:1},prob:{home:42,draw:28,away:30},watch:['ESPN+','DAZN','Movistar+']},
+  {id:'fl5',sport:'football',league:'Champions League',status:'final',home:{abbr:'ATA',name:'Atalanta BC'},away:{abbr:'BVB',name:'Borussia Dortmund'},score:{home:4,away:1}},
+  {id:'fl6',sport:'football',league:'Premier League',status:'final',home:{abbr:'WOL',name:'Wolverhampton'},away:{abbr:'LFC',name:'Liverpool FC'},score:{home:2,away:1}},
+  {id:'fl7',sport:'football',league:'Champions League',status:'scheduled',time:'10 MAR 20:00',home:{abbr:'NEW',name:'Newcastle Utd'},away:{abbr:'BAR',name:'FC Barcelona'},score:{home:0,away:0},prob:{home:33,draw:24,away:43},watch:['DAZN','ESPN+']},
+  {id:'fl8',sport:'football',league:'Champions League',status:'scheduled',time:'11 MAR 20:00',home:{abbr:'RMA',name:'Real Madrid'},away:{abbr:'MCI',name:'Man City'},score:{home:0,away:0},prob:{home:27,draw:25,away:48},watch:['DAZN','ESPN+']},
+  {id:'bk1',sport:'basketball',league:'NBA',status:'live',quarter:'Q4',gameClock:'1:47',home:{abbr:'LAL',name:'Los Angeles Lakers'},away:{abbr:'GSW',name:'Golden State Warriors'},score:{home:108,away:107},prob:{home:55,draw:0,away:45},watch:['ESPN','TNT','NBA League Pass']},
+  {id:'bk2',sport:'basketball',league:'NBA',status:'live',quarter:'Q3',gameClock:'5:22',home:{abbr:'BOS',name:'Boston Celtics'},away:{abbr:'OKC',name:'OKC Thunder'},score:{home:72,away:68},prob:{home:61,draw:0,away:39},watch:['ESPN','NBA League Pass']},
+  {id:'bk3',sport:'basketball',league:'NBA',status:'final',home:{abbr:'NYK',name:'New York Knicks'},away:{abbr:'DEN',name:'Denver Nuggets'},score:{home:142,away:103}},
+  {id:'bk4',sport:'basketball',league:'NBA',status:'final',home:{abbr:'PHX',name:'Phoenix Suns'},away:{abbr:'NOP',name:'New Orleans'},score:{home:118,away:116}},
+  {id:'bk5',sport:'basketball',league:'NBA',status:'scheduled',time:'HOY 19:00',home:{abbr:'CLE',name:'Cleveland Cavaliers'},away:{abbr:'PHI',name:'Philadelphia 76ers'},score:{home:0,away:0},prob:{home:87,draw:0,away:13},watch:['ESPN','NBA League Pass']},
+  {id:'bk6',sport:'basketball',league:'NBA',status:'scheduled',time:'HOY 19:30',home:{abbr:'OKC',name:'OKC Thunder'},away:{abbr:'DEN',name:'Denver Nuggets'},score:{home:0,away:0},prob:{home:70,draw:0,away:30},watch:['TNT','NBA League Pass']},
+  {id:'bb1',sport:'baseball',league:'Clásico Mundial',status:'live',inning:'6ta ▲',home:{abbr:'ISR',name:'Israel'},away:{abbr:'DOM',name:'Rep. Dominicana'},score:{home:0,away:5},prob:{home:8,draw:0,away:92},watch:['ESPN','Fox Sports']},
+  {id:'bb2',sport:'baseball',league:'Clásico Mundial',status:'live',inning:'4ta ▼',home:{abbr:'PAN',name:'Panamá'},away:{abbr:'COL',name:'Colombia'},score:{home:2,away:2},prob:{home:50,draw:0,away:50},watch:['ESPN','DAZN']},
+  {id:'bb3',sport:'baseball',league:'Clásico Mundial',status:'final',home:{abbr:'VEN',name:'Venezuela'},away:{abbr:'ISR',name:'Israel'},score:{home:11,away:3}},
+  {id:'bb4',sport:'baseball',league:'MLB',status:'final',home:{abbr:'NYM',name:'New York Mets'},away:{abbr:'NYY',name:'New York Yankees'},score:{home:10,away:4}},
+  {id:'bb5',sport:'baseball',league:'Clásico Mundial',status:'scheduled',time:'HOY 23:00',home:{abbr:'PUR',name:'Puerto Rico'},away:{abbr:'CUB',name:'Cuba'},score:{home:0,away:0},watch:['Fox Sports','ESPN Deportes']},
+  {id:'bb6',sport:'baseball',league:'MLB',status:'scheduled',time:'HOY 20:05',home:{abbr:'MIL',name:'Milwaukee Brewers'},away:{abbr:'LAD',name:'LA Dodgers'},score:{home:0,away:0},watch:['Apple TV+','MLB.TV']},
+];
+
+const liveMin={};
+
+// ════════════════════════════════════════
+//  HEAT SCORE
+// ════════════════════════════════════════
+function heatScore(m){
+  if(m.status!=='live') return -100;
+  let s=1000;
+  s+=(PRESTIGE[m.league]||50)*2;
+  s+=((STARS[m.home.abbr]||5)+(STARS[m.away.abbr]||5))*10;
+  const diff=Math.abs(m.score.home-m.score.away);
+  if(diff===0) s+=500; else if(diff===1) s+=200; else s-=diff*30;
+  if(m.sport==='football'){
+    const mn=liveMin[m.id]||m.minute||0;
+    if(mn>=80)s+=400; else if(mn>=70)s+=200; else if(mn>=60)s+=80;
+  }
+  if(m.sport==='basketball'){
+    const q=parseInt((m.quarter||'Q1').replace('Q',''));
+    if(q===4)s+=450; else if(q===3)s+=180;
+    const clk=m.gameClock||'12:00';
+    if(q===4&&parseInt(clk)<=3)s+=350;
+  }
+  if(m.sport==='baseball'){
+    const inn=parseInt(m.inning)||1;
+    if(inn>=7)s+=350; else if(inn>=5)s+=120;
+  }
+  if(m.prob){const bal=Math.abs(50-m.prob.home);s+=Math.max(0,(50-bal)*4)}
+  s+=(m.score.home+m.score.away)*15;
+  return s;
+}
+function heatEmoji(s){
+  if(s>=2300)return'🔥';if(s>=1800)return'⚡';if(s>=1400)return'💥';if(s>=1000)return'🎯';return'';
+}
+
+// ════════════════════════════════════════
+//  SORT
+// ════════════════════════════════════════
+let sortMode='heat', curSport='all';
+
+function sortFn(a,b){
+  if(sortMode==='heat')return heatScore(b)-heatScore(a);
+  if(sortMode==='close')return Math.abs(a.score.home-a.score.away)-Math.abs(b.score.home-b.score.away);
+  if(sortMode==='goals')return(b.score.home+b.score.away)-(a.score.home+a.score.away);
+  if(sortMode==='prestige'){
+    const p=m=>(PRESTIGE[m.league]||50)+(STARS[m.home.abbr]||5)+(STARS[m.away.abbr]||5);
+    return p(b)-p(a);
+  }
+  return 0;
+}
+
+function setSort(mode){
+  sortMode=mode;
+  document.querySelectorAll('.schip').forEach(c=>c.classList.toggle('active',c.dataset.sort===mode));
+  const lbl={heat:'TOP por calor',close:'más cerrados primero',goals:'más goles primero',prestige:'por prestigio'};
+  document.getElementById('sortLbl').textContent=lbl[mode]||'';
+  renderAll();
+}
+
+// ════════════════════════════════════════
+//  BALL TRANSITION ANIMATION
+// ════════════════════════════════════════
+const BALLS={all:'🏆',football:'⚽',basketball:'🏀',baseball:'⚾'};
+
+function transitionSport(newSport, callback){
+  const overlay=document.getElementById('ballOverlay');
+  const anim=document.getElementById('ballAnim');
+  const wrap=document.getElementById('pageWrap');
+
+  // Fade out page
+  wrap.classList.add('page-out');
+
+  // Show ball
+  overlay.classList.add('active');
+  anim.textContent=BALLS[newSport]||'🏆';
+  anim.classList.remove('playing');
+  void anim.offsetWidth; // reflow
+  anim.classList.add('playing');
+
+  setTimeout(()=>{
+    callback();
+    renderAll();
+    // Fade in page
+    wrap.classList.remove('page-out');
+    wrap.classList.add('page-in');
+    setTimeout(()=>wrap.classList.remove('page-in'),400);
+  }, 600);
+
+  setTimeout(()=>{
+    anim.classList.remove('playing');
+    overlay.classList.remove('active');
+    anim.textContent='';
+  }, 1150);
+}
+
+function switchSport(s){
+  if(s===curSport) return;
+  transitionSport(s, ()=>{
+    curSport=s;
+    document.querySelectorAll('.stab').forEach(t=>t.classList.toggle('active',t.dataset.s===s));
+  });
+}
+
+// ════════════════════════════════════════
+//  CLOCK
+// ════════════════════════════════════════
+setInterval(()=>{
+  document.getElementById('clock').textContent=new Date().toLocaleTimeString('es-DO',{hour12:false});
+},1000);
+
+// ════════════════════════════════════════
+//  RENDER
+// ════════════════════════════════════════
+function getFiltered(){
+  return curSport==='all'?MATCHES:MATCHES.filter(m=>m.sport===curSport);
+}
+
+function renderAll(){
+  const ms=getFiltered();
+  renderGrid(ms.filter(m=>m.status==='live').sort(sortFn),'liveGrid');
+  renderGrid(ms.filter(m=>m.status==='final').sort(sortFn),'recentGrid');
+  renderGrid(ms.filter(m=>m.status==='scheduled'),'upcomingGrid');
+  updateCounts();
+}
+
+function renderGrid(ms,id){
+  const el=document.getElementById(id);
+  if(!ms.length){el.innerHTML=`<div class="empty-state">🏟️ Sin partidos disponibles</div>`;return}
+  el.innerHTML=ms.map((m,i)=>cardHTML(m,i)).join('');
+}
+
+function venueHTML(sport){
+  if(sport==='football')return footballSVG();
+  if(sport==='basketball')return basketballSVG();
+  return baseballSVG();
+}
+
+function cardHTML(m,rank){
+  const isLive=m.status==='live';
+  const heat=isLive?heatScore(m):0;
+  const he=isLive?heatEmoji(heat):'';
+  const sportClass={football:'sf',basketball:'sb',baseball:'sbb'}[m.sport]||'sf';
+  const hotClass=he==='🔥'?' hot':'';
+
+  let statusHTML='';
+  if(isLive){
+    const info=m.sport==='football'?(liveMin[m.id]||m.minute||1)+"'"
+      :m.sport==='basketball'?`${m.quarter} ${m.gameClock}`
+      :(m.inning||'1ra');
+    statusHTML=`<div class="sbadge sl">● ${info}</div>`;
+  } else if(m.status==='final'){
+    statusHTML=`<div class="sbadge sf2">FINAL</div>`;
+  } else {
+    statusHTML=`<div class="sbadge ss">${m.time||'PRÓXIMO'}</div>`;
+  }
+
+  const sc=isLive?({football:'cg',basketball:'co',baseball:'cp'}[m.sport]||''):'';
+  const sub=isLive?({football:'sg',basketball:'so',baseball:'sp'}[m.sport]||''):'';
+  let subscore='';
+  if(isLive){
+    if(m.sport==='football')subscore=`<div class="ssub ${sub}">${liveMin[m.id]||m.minute}'</div>`;
+    else if(m.sport==='basketball')subscore=`<div class="ssub ${sub}">${m.quarter}·${m.gameClock}</div>`;
+    else subscore=`<div class="ssub ${sub}">${m.inning}</div>`;
+  }
+
+  const pbar=m.prob?`<div class="pbar ${sportClass}"><div class="pbh" style="width:${m.prob.home}%"></div><div class="pbd" style="width:${m.prob.draw||0}%"></div><div class="pba" style="width:${m.prob.away}%"></div></div>`:'';
+  const rrib=rank===0&&isLive?`<div class="rrib">#1 TOP</div>`:'';
+
+  return `<div class="card ${sportClass}${hotClass}" onclick="openMatch('${m.id}')">
+    ${venueHTML(m.sport)}
+    <div class="cov"></div>
+    ${rrib}
+    <div class="ctop"><div class="lbadge">${m.league}</div>${statusHTML}</div>
+    ${he?`<div class="hbadge">${he}</div>`:''}
+    <div class="cbody">
+      <div class="trow">
+        <div class="tside home"><div class="tabr">${m.home.abbr}</div><div class="tfull">${m.home.name}</div></div>
+        <div class="sctr"><div class="smain ${sc}">${m.score.home} — ${m.score.away}</div>${subscore}</div>
+        <div class="tside away"><div class="tabr">${m.away.abbr}</div><div class="tfull">${m.away.name}</div></div>
+      </div>
+      ${pbar}
+    </div>
+  </div>`;
+}
+
+// ════════════════════════════════════════
+//  MODAL
+// ════════════════════════════════════════
+let curMatch=null;
+
+function openMatch(id){
+  const m=MATCHES.find(x=>x.id===id); if(!m) return;
+  curMatch=m;
+  populateModal(m);
+  const modal=document.getElementById('modal');
+  modal.classList.add('open');
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>modal.classList.add('visible'));
+  });
+  document.body.style.overflow='hidden';
+  showTab('stats');
+}
+
+function closeModal(){
+  const modal=document.getElementById('modal');
+  modal.classList.remove('visible');
+  setTimeout(()=>{
+    modal.classList.remove('open');
+    document.body.style.overflow='';
+    curMatch=null;
+  }, 350);
+}
+
+function showTab(name){
+  document.querySelectorAll('.mtab').forEach((t,i)=>{
+    const names=['stats','lineup','feed','watch','ai'];
+    t.classList.toggle('active',names[i]===name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  const el=document.getElementById('tab-'+name);
+  if(el) el.classList.add('active');
+}
+
+function populateModal(m){
+  document.getElementById('mLg').textContent=m.league;
+  document.getElementById('mLP').style.display=m.status==='live'?'flex':'none';
+  document.getElementById('mHB').textContent=m.home.abbr;
+  document.getElementById('mHN').textContent=m.home.name;
+  document.getElementById('mAB').textContent=m.away.abbr;
+  document.getElementById('mAN').textContent=m.away.name;
+  document.getElementById('mSc').textContent=`${m.score.home}—${m.score.away}`;
+  const stEl=document.getElementById('mSt');
+  if(m.status==='live'){
+    if(m.sport==='football')stEl.innerHTML=`<div class="timer tg">⏱ ${liveMin[m.id]||m.minute}'</div>`;
+    else if(m.sport==='basketball')stEl.innerHTML=`<div class="timer to">🏀 ${m.quarter} · ${m.gameClock}</div>`;
+    else stEl.innerHTML=`<div class="timer tp">⚾ ${m.inning}</div>`;
+  } else if(m.status==='final'){stEl.innerHTML=`<div class="fin-lbl">FINALIZADO</div>`}
+  else{stEl.innerHTML=`<div class="fin-lbl">PRÓXIMO · ${m.time||''}</div>`}
+  const pr=document.getElementById('mPR');
+  if(m.prob&&m.status!=='final'){
+    pr.style.display='flex';
+    document.getElementById('pH').textContent=m.prob.home+'%';
+    document.getElementById('pD').textContent=m.prob.draw>0?m.prob.draw+'%':'—';
+    document.getElementById('pA').textContent=m.prob.away+'%';
+  } else pr.style.display='none';
+  document.getElementById('wBar').innerHTML=m.watch?.map(w=>`<a class="wbtn" href="${WATCH_URLS[w]||'#'}" target="_blank" rel="noopener">📺 ${w}</a>`).join('')||`<span style="color:var(--dim);font-size:.8rem">Consulta plataformas en tu región.</span>`;
+  renderStats(m);
+  renderFeed(m,'feedScroll','feedTitle');
+  renderFeed(m,'feedScroll2','feedTitle2');
+  renderLineup(m);
+  initAI(m);
+}
+
+function updateModalLive(){
+  if(!curMatch||curMatch.status!=='live') return;
+  const m=curMatch;
+  document.getElementById('mSc').textContent=`${m.score.home}—${m.score.away}`;
+  const stEl=document.getElementById('mSt');
+  if(m.sport==='football')stEl.innerHTML=`<div class="timer tg">⏱ ${liveMin[m.id]||m.minute}'</div>`;
+  else if(m.sport==='basketball')stEl.innerHTML=`<div class="timer to">🏀 ${m.quarter} · ${m.gameClock}</div>`;
+  else stEl.innerHTML=`<div class="timer tp">⚾ ${m.inning}</div>`;
+  if(m.prob){
+    const pH=document.getElementById('pH'),pA=document.getElementById('pA');
+    if(pH)pH.textContent=m.prob.home+'%';
+    if(pA)pA.textContent=m.prob.away+'%';
+  }
+}
+
+// ════════════════════════════════════════
+//  STATS
+// ════════════════════════════════════════
+function rng(b,v){return Math.max(0,Math.round(b+(Math.random()-.5)*v))}
+function renderStats(m){
+  let stats=[];
+  if(m.sport==='football'){
+    const hp=rng(52,18);
+    stats=[{l:'Posesión (%)',h:hp,a:100-hp},{l:'Tiros totales',h:rng(m.score.home*3+4,4),a:rng(m.score.away*3+3,4)},{l:'Tiros al arco',h:rng(m.score.home*2+2,2),a:rng(m.score.away*2+1,2)},{l:'Córners',h:rng(4,3),a:rng(3,3)},{l:'Faltas',h:rng(9,5),a:rng(8,5)},{l:'Fuera de juego',h:rng(2,2),a:rng(2,2)},{l:'Tarjetas 🟡',h:rng(1,1),a:rng(1,1)},{l:'Pases completados',h:rng(280,80),a:rng(250,80)}];
+  } else if(m.sport==='basketball'){
+    stats=[{l:'Pts en pintura',h:rng(m.score.home*.35,8),a:rng(m.score.away*.35,8)},{l:'Triples anotados',h:rng(m.score.home*.12,4),a:rng(m.score.away*.12,4)},{l:'Rebotes',h:rng(30,8),a:rng(28,8)},{l:'Asistencias',h:rng(18,6),a:rng(16,6)},{l:'Robos',h:rng(5,3),a:rng(4,3)},{l:'Bloqueos',h:rng(3,2),a:rng(3,2)},{l:'Pérdidas',h:rng(9,4),a:rng(8,4)},{l:'% Tiro campo',h:rng(47,8),a:rng(44,8)}];
+  } else {
+    stats=[{l:'Hits',h:rng(m.score.home*1.5+3,4),a:rng(m.score.away*1.5+4,4)},{l:'Errores',h:rng(1,1),a:rng(1,1)},{l:'Dobles',h:rng(2,2),a:rng(2,2)},{l:'Home Runs',h:rng(m.score.home*.3,1),a:rng(m.score.away*.3,1)},{l:'Strikeouts',h:rng(6,4),a:rng(5,4)},{l:'Bases x bolas',h:rng(3,2),a:rng(3,2)},{l:'Carreras imp.',h:m.score.home,a:m.score.away},{l:'Prom. bateo',h:+(Math.random()*.12+.220).toFixed(3),a:+(Math.random()*.12+.210).toFixed(3)}];
+  }
+  document.getElementById('statsW').innerHTML=stats.map(s=>{const t=(+s.h+ +s.a)||1,hp=Math.round(+s.h/t*100);return`<div class="srow"><div class="svh">${s.h}</div><div class="slbl">${s.l}</div><div class="sva">${s.a}</div><div class="bw"><div class="bh" style="width:${hp}%"></div><div class="ba" style="width:${100-hp}%"></div></div></div>`}).join('');
+}
+
+// ════════════════════════════════════════
+//  LINEUP
+// ════════════════════════════════════════
+const FL_PLAYERS={
+  MCI:['Ederson','Walker','Rúben Dias','Gvardiol','Bernardo','Rodri','De Bruyne','Kovačić','Doku','Haaland','Grealish'],
+  BAR:['Ter Stegen','Koundé','Cubarsí','Íñigo Martínez','Balde','Casadó','Pedri','Gavi','Yamal','Lewandowski','Ferran'],
+  ATM:['Oblak','Molina','Witsel','Giménez','Reinildo','De Paul','Koke','Barrios','Llorente','Morata','Griezmann'],
+  TOT:['Vicario','Porro','Romero','Van de Ven','Udogie','Bissouma','Maddison','Bentancur','Kulusevski','Son','Richarlison'],
+  ARS:['Raya','White','Saliba','Gabriel','Zinchenko','Havertz','Ødegaard','Rice','Saka','Trossard','Martinelli'],
+  CFC:['Sánchez','James','Thiago Silva','Colwill','Cucurella','Caicedo','Enzo','Gallagher','Palmer','Jackson','Sterling'],
+  BAR2:['Flekken','Tah','Granit Xhaka','Hradecky','Andrich','Grimaldo','Frimpong','Wirtz','Boniface','Granit','Hofmann'],
+  RMA:['Courtois','Carvajal','Rüdiger','Militão','Mendy','Tchouaméni','Camavinga','Bellingham','Valverde','Mbappé','Vinicius'],
+  _:Array.from({length:11},(_,i)=>`Jugador ${i+1}`)
+};
+const BK_PLAYERS={
+  LAL:['LeBron James','Anthony Davis','Austin Reaves','D\'Angelo Russell','Rui Hachimura'],
+  GSW:['Stephen Curry','Klay Thompson','Draymond Green','Jonathan Kuminga','Brandin Podziemski'],
+  BOS:['Jayson Tatum','Jaylen Brown','Kristaps Porziņģis','Jrue Holiday','Al Horford'],
+  OKC:['Shai Gilgeous-Alexander','Chet Holmgren','Luguentz Dort','Josh Giddey','Jalen Williams'],
+  NYK:['Jalen Brunson','Julius Randle','OG Anunoby','Josh Hart','Mitchell Robinson'],
+  DEN:['Nikola Jokić','Jamal Murray','Michael Porter Jr.','Aaron Gordon','Kentavious C-P'],
+  _:Array.from({length:5},(_,i)=>`Jugador ${i+1}`)
+};
+const BB_PLAYERS={
+  DOM:['Julio Rodríguez','Juan Soto','Vlad Guerrero Jr.','Manny Machado','Ronald Acuña Jr.','Ke\'Bryan Hayes','Jorge Alfaro','Junior Félix','Starling Marte','José Abreu','Sandy Alcántara'],
+  ISR:['Dean Kremer','Mitch White','Jake Fishman','Josh Zeid','Aaron Bummer','Ty Tice','Steven Souza Jr.','Ike Davis','Alex Katz','Scott Barnes','Jordan Serena'],
+  VEN:['Salvador Pérez','José Altuve','Gleyber Torres','Gio Urshela','Pablo López','Luis Arraez','Ronald Acuña','Eugenio Suárez','Miguel Cabrera','Christian Javier','Nestor Cortes'],
+  PAN:['Edgar Rentería','Carlos Lee','Manny Sanguillén','Rod Carew','Bruce Chen','Omar Moreno','Ben Oglivie','Rubén Tejada','Esteban Loaiza','Pedro Guerrero','Héctor López'],
+  COL:['Édgar Rentería','Orlando Cabrera','Orlando Ramírez','Wilson Ramos','Yeison Coca','Donovan Solano','Ervin Santana','Julio Teherán','Jorge Posada','Luis Castro','Rafael Furcal'],
+  _:Array.from({length:9},(_,i)=>`Jugador ${i+1}`)
+};
+
+// Football 4-3-3 formation positions (% of field, top=goal, bottom=attack)
+const FORMATIONS_433=[
+  // GK
+  {n:0,x:50,y:88},
+  // DEF
+  {n:1,x:15,y:72},{n:2,x:35,y:72},{n:3,x:65,y:72},{n:4,x:85,y:72},
+  // MID
+  {n:5,x:25,y:52},{n:6,x:50,y:48},{n:7,x:75,y:52},
+  // FWD
+  {n:8,x:20,y:24},{n:9,x:50,y:18},{n:10,x:80,y:24},
+];
+// Basketball 5 positions on court
+const BK_POSITIONS=[
+  {pos:'PG',x:50,y:72},{pos:'SG',x:25,y:60},{pos:'SF',x:75,y:60},
+  {pos:'PF',x:30,y:38},{pos:'C',x:70,y:38},
+  // Away team mirrored
+  {pos:'PG',x:50,y:28},{pos:'SG',x:75,y:40},{pos:'SF',x:25,y:40},
+  {pos:'PF',x:70,y:62},{pos:'C',x:30,y:62},
+];
+// Baseball fielding positions
+const BB_POSITIONS=[
+  {pos:'P',x:50,y:52},{pos:'C',x:50,y:84},
+  {pos:'1B',x:72,y:58},{pos:'2B',x:62,y:38},{pos:'SS',x:38,y:38},{pos:'3B',x:28,y:58},
+  {pos:'LF',x:20,y:18},{pos:'CF',x:50,y:10},{pos:'RF',x:80,y:18},
+];
+
+function getFL(abbr){ return FL_PLAYERS[abbr]||FL_PLAYERS['_']; }
+function getBK(abbr){ return BK_PLAYERS[abbr]||BK_PLAYERS['_']; }
+function getBB(abbr){ return BB_PLAYERS[abbr]||BB_PLAYERS['_']; }
+
+function renderLineup(m){
+  const wrap=document.getElementById('lineupContent');
+  const subsWrap=document.getElementById('subsContent');
+
+  if(m.sport==='football'){
+    const hPlayers=getFL(m.home.abbr);
+    const aPlayers=getFL(m.away.abbr);
+
+    const makePitch=(players,color,title)=>{
+      const dots=FORMATIONS_433.map((p,i)=>{
+        const nm=(players[i]||'?').split(' ').pop();
+        return `<div class="player-dot" style="left:${p.x}%;top:${p.y}%">
+          <div class="pdot" style="background:${color}">${i===0?'GK':i}</div>
+          <div class="pname">${nm}</div>
+        </div>`;
+      }).join('');
+      return `<div>
+        <div class="lineup-col-title"><div class="team-color-dot" style="background:${color}"></div>${title}</div>
+        <div class="formation-field"><div class="form-pitch">${formationPitchSVG()}</div>${dots}</div>
+      </div>`;
+    };
+    wrap.innerHTML=`<div class="lineup-wrap">
+      ${makePitch(hPlayers,'#00c8ff',m.home.name+' (4-3-3)')}
+      ${makePitch(aPlayers,'#ff4d7d',m.away.name+' (4-3-3)')}
+    </div>`;
+
+    // Subs
+    const subEvts=[];
+    for(let i=0;i<rng(2,2);i++){
+      const isH=Math.random()>.5;
+      const pl=isH?hPlayers:aPlayers;
+      const min=rng(60,25);
+      subEvts.push({time:min+"'",icon:'🔄',text:`Sale ${pl[~~(Math.random()*6)+5]||'Jugador'}, entra ${pl[~~(Math.random()*5)+6]||'Jugador'} — ${isH?m.home.abbr:m.away.abbr}`});
+    }
+    subsWrap.innerHTML=subEvts.map(e=>`<div class="sub-item"><div class="sub-ico">${e.icon}</div><div class="sub-txt">${e.text}</div><div class="sub-time">${e.time}</div></div>`).join('');
+
+  } else if(m.sport==='basketball'){
+    const hP=getBK(m.home.abbr);
+    const aP=getBK(m.away.abbr);
+
+    const makeCourt=(players,color,title,side)=>{
+      const positions=side==='home'?BK_POSITIONS.slice(0,5):BK_POSITIONS.slice(5,10);
+      const dots=positions.map((p,i)=>{
+        const nm=(players[i]||'?').split(' ').pop();
+        return `<div class="player-dot" style="left:${p.x}%;top:${p.y}%">
+          <div class="pdot" style="background:${color}">${p.pos}</div>
+          <div class="pname">${nm}</div>
+        </div>`;
+      }).join('');
+      return `<div>
+        <div class="lineup-col-title"><div class="team-color-dot" style="background:${color}"></div>${title}</div>
+        <div class="bk-court-wrap"><div class="bk-court">${courtSVG()}</div>${dots}</div>
+      </div>`;
+    };
+    wrap.innerHTML=`<div class="lineup-wrap">
+      ${makeCourt(hP,'#ff8c00',m.home.name,'home')}
+      ${makeCourt(aP,'#00f5ff',m.away.name,'away')}
+    </div>`;
+    const subEvts=[];
+    for(let i=0;i<rng(3,2);i++){
+      const isH=Math.random()>.5;
+      const pl=isH?hP:aP;
+      const q='Q'+rng(2,2);
+      subEvts.push({time:q,icon:'🔄',text:`Sustitución: sale ${pl[~~(Math.random()*3)+1]||'Jugador'}, entra reserva — ${isH?m.home.abbr:m.away.abbr}`});
+    }
+    subsWrap.innerHTML=subEvts.map(e=>`<div class="sub-item"><div class="sub-ico">${e.icon}</div><div class="sub-txt">${e.text}</div><div class="sub-time">${e.time}</div></div>`).join('');
+
+  } else {
+    // baseball
+    const hP=getBB(m.home.abbr);
+    const aP=getBB(m.away.abbr);
+    const FIELD_POS=['P','C','1B','2B','SS','3B','LF','CF','RF'];
+
+    const makeField=(players,color,title)=>{
+      const dots=BB_POSITIONS.map((p,i)=>{
+        const nm=(players[i]||'?').split(' ').pop();
+        return `<div class="player-dot" style="left:${p.x}%;top:${p.y}%">
+          <div class="pdot" style="background:${color};font-size:.5rem">${p.pos}</div>
+          <div class="pname">${nm}</div>
+        </div>`;
+      }).join('');
+      return `<div>
+        <div class="lineup-col-title"><div class="team-color-dot" style="background:${color}"></div>${title}</div>
+        <div class="bb-diamond-wrap"><div class="bb-diamond">${diamondSVG()}</div>${dots}</div>
+      </div>`;
+    };
+    wrap.innerHTML=`<div class="lineup-wrap">
+      ${makeField(hP,'#bf5fff',m.home.name+' (Fielding)')}
+      ${makeField(aP,'#ffd700',m.away.name+' (Batting)')}
+    </div>`;
+    // Batting order list
+    const battingOrder=aP.slice(0,9).map((p,i)=>`<div class="sub-item"><div class="sub-ico" style="font-family:monospace;font-size:.75rem;color:var(--amber)">${i+1}</div><div class="sub-txt">${p}</div><div class="sub-time">${['2B','SS','1B','RF','CF','3B','DH','C','LF'][i]||''}</div></div>`).join('');
+    subsWrap.innerHTML=`<div style="font-family:'Bebas Neue';font-size:.8rem;letter-spacing:2px;color:var(--amber);margin-bottom:8px">ORDEN AL BATE — ${m.away.name}</div>${battingOrder}`;
+  }
+}
+
+// ════════════════════════════════════════
+//  FEED
+// ════════════════════════════════════════
+const FLPL={MCI:['Haaland','De Bruyne','Rodri'],BAR:['Lewandowski','Pedri','Yamal'],RMA:['Bellingham','Vinicius','Mbappé'],ATM:['Griezmann','Morata','Koke'],ARS:['Saka','Ødegaard','Havertz'],CFC:['Palmer','Jackson','Enzo'],LFC:['Salah','Van Dijk','Núñez'],TOT:['Son','Maddison','Kulusevski'],_:['Jugador A','Jugador B']};
+const BKPL={LAL:['LeBron','A. Davis','Reaves'],GSW:['Curry','Klay','Draymond'],BOS:['Tatum','J. Brown','Holiday'],OKC:['SGA','Holmgren','Williams'],NYK:['Brunson','Randle','Anunoby'],DEN:['Jokić','Murray','Porter Jr'],_:['Jugador A','Jugador B']};
+const BBPL={DOM:['J. Rodríguez','Guerrero Jr.','J. Soto'],VEN:['S. Pérez','Altuve','G. Torres'],USA:['G. Cole','Betts','Trout'],LAD:['Ohtani','Betts','Freeman'],NYY:['A. Judge','G. Cole'],PAN:['E. Rentería','C. Lee'],COL:['R. Ureña','W. Tovar'],ISR:['D. Kremer','M. White'],_:['Bateador','Lanzador']};
+function gP(abbr,sport){const m=sport==='football'?FLPL:sport==='basketball'?BKPL:BBPL;const l=m[abbr]||m['_'];return l[~~(Math.random()*l.length)]}
+
+function generateFeed(m){
+  const evs=[];
+  if(m.sport==='football'){
+    const mx=m.status==='live'?(liveMin[m.id]||m.minute||45):90;
+    for(let g=0;g<m.score.home;g++) evs.push({k:rng(5,mx-8),i:'⚽',t:`¡GOL! ${gP(m.home.abbr,'football')} (${m.home.abbr})`,c:'goal'});
+    for(let g=0;g<m.score.away;g++) evs.push({k:rng(5,mx-8),i:'⚽',t:`¡GOL! ${gP(m.away.abbr,'football')} (${m.away.abbr})`,c:'goal'});
+    const et=[{i:'🟡',t:'Tarjeta amarilla'},{i:'🔄',t:'Sustitución'},{i:'🎯',t:'Ocasión'},{i:'🔵',t:'Córner'},{i:'🚩',t:'Fuera de juego'},{i:'🦵',t:'Falta'}];
+    for(let i=0;i<Math.floor(mx/8);i++){const e=et[~~(Math.random()*et.length)];const tm=Math.random()>.5?m.home:m.away;evs.push({k:rng(2,mx-2),i:e.i,t:`${e.t}: ${gP(tm.abbr,'football')} (${tm.abbr})`})}
+    evs.sort((a,b)=>b.k-a.k);
+    return evs.map(e=>`<div class="fev"><div class="fmin">${e.k}'</div><div class="fico">${e.i}</div><div class="ftxt ${e.c||''}">${e.t}</div></div>`).join('');
+  }
+  if(m.sport==='basketball'){
+    const qtrs=m.status==='live'?parseInt((m.quarter||'Q1').replace('Q','')):4;
+    const et=[{i:'🏀',t:'Canasta 2pts'},{i:'🎯',t:'Triple ✓'},{i:'🔄',t:'Sustitución'},{i:'💪',t:'Mate'},{i:'🛡️',t:'Bloqueo'},{i:'⚡',t:'Robo'},{i:'🏅',t:'Tiro libre ✓'},{i:'❌',t:'Triple fallado'}];
+    for(let q=1;q<=qtrs;q++) for(let i=0;i<6;i++){const e=et[~~(Math.random()*et.length)];const tm=Math.random()>.5?m.home:m.away;const sc=e.t.includes('2pts')||e.t.includes('✓')&&!e.t.includes('fallado');evs.push({k:`Q${q}`,i:e.i,t:`${e.t}: ${gP(tm.abbr,'basketball')} (${tm.abbr})`,c:sc?'pts':''})}
+    return evs.map(e=>`<div class="fev"><div class="fmin">${e.k}</div><div class="fico">${e.i}</div><div class="ftxt ${e.c}">${e.t}</div></div>`).join('');
+  }
+  const maxInn=m.status==='live'?parseInt(m.inning)||6:9;
+  const et=[{i:'⚾',t:'Ponche'},{i:'💥',t:'Hit sencillo'},{i:'🔥',t:'Doble'},{i:'🚀',t:'¡HOME RUN!'},{i:'🤲',t:'Fly out'},{i:'⚡',t:'Doble play'},{i:'🎯',t:'Bola cuatro'},{i:'🏃',t:'Robo de base'}];
+  for(let inn=1;inn<=Math.min(maxInn,9);inn++) for(let h=0;h<4;h++){const e=et[~~(Math.random()*et.length)];const tm=Math.random()>.5?m.home:m.away;const hit=e.t.includes('HOME')||e.t.includes('Hit')||e.t.includes('Doble');evs.push({k:`${inn}ª`,i:e.i,t:`${e.t}: ${gP(tm.abbr,'baseball')} (${tm.abbr})`,c:hit?'hit':''})}
+  return evs.map(e=>`<div class="fev"><div class="fmin">${e.k}</div><div class="fico">${e.i}</div><div class="ftxt ${e.c}">${e.t}</div></div>`).join('');
+}
+
+function renderFeed(m,scrollId,titleId){
+  const titles={football:'⚡ MINUTO A MINUTO',basketball:'⚡ JUGADA A JUGADA',baseball:'⚡ ENTRADA A ENTRADA'};
+  document.getElementById(titleId).textContent=titles[m.sport]||'⚡ EN VIVO';
+  document.getElementById(scrollId).innerHTML=generateFeed(m);
+}
+
+// ════════════════════════════════════════
+//  AI
+// ════════════════════════════════════════
+const CHIPS_MAP={
+  football:['¿Quién va ganando?','Analiza el partido','Predicción final','Táctica del partido','¿Quién es el MVP?'],
+  basketball:['¿Quién lidera?','¿Habrá prórroga?','Predicción del ganador','Mejor jugador hoy','Análisis táctico'],
+  baseball:['¿Quién gana?','Analiza al pitcher','Estadísticas bateo','¿Home run hoy?','Predicción final'],
+};
+
+function initAI(m){
+  document.getElementById('aiChips').innerHTML=(CHIPS_MAP[m.sport]||CHIPS_MAP.football).map(c=>`<div class="chip2" onclick="sendChip(this)">${c}</div>`).join('');
+  document.getElementById('aiChat').innerHTML=`<div class="bub bai"><div class="bai-nm">PULSE AI</div>Analizando <strong>${m.home.name} vs ${m.away.name}</strong> (${m.league}). Marcador: ${m.score.home}–${m.score.away}. ¡Pregúntame lo que quieras!</div>`;
+  document.getElementById('aiIn').value='';
+}
+
+async function sendAI(){
+  const inp=document.getElementById('aiIn');
+  const msg=inp.value.trim();
+  if(!msg||!curMatch) return;
+  const m=curMatch;
+  const chat=document.getElementById('aiChat');
+  const btn=document.getElementById('aiBtn');
+  chat.innerHTML+=`<div class="bub buser">${msg}</div>`;
+  inp.value=''; btn.disabled=true;
+  chat.innerHTML+=`<div class="typing" id="typInd"><div class="td"></div><div class="td"></div><div class="td"></div></div>`;
+  chat.scrollTop=chat.scrollHeight;
+  const sname={football:'fútbol',basketball:'básquetbol',baseball:'béisbol'}[m.sport]||m.sport;
+  let li='';
+  if(m.status==='live'){
+    if(m.sport==='football') li=`Minuto ${liveMin[m.id]||m.minute||1}.`;
+    else if(m.sport==='basketball') li=`${m.quarter}, reloj ${m.gameClock}.`;
+    else li=`${m.inning}.`;
+  }
+  const sys=`Eres PULSE AI, analista deportivo experto en ${sname} con acento caribeño apasionado. Partido: ${m.home.name} vs ${m.away.name} (${m.league}). Marcador: ${m.score.home}–${m.score.away}. Estado: ${m.status==='live'?'EN VIVO — '+li:m.status==='final'?'FINALIZADO':'PRÓXIMO'}. ${m.prob?`Probabilidades: Local ${m.prob.home}%, Visitante ${m.prob.away}%.`:''} Índice de emoción: ${Math.round(heatScore(m))}. Responde en ESPAÑOL, máximo 3 oraciones, apasionado y directo. Usa emojis.`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sys,messages:[{role:'user',content:msg}]})});
+    const data=await res.json();
+    const reply=data.content?.[0]?.text||'Error al obtener respuesta.';
+    document.getElementById('typInd')?.remove();
+    chat.innerHTML+=`<div class="bub bai"><div class="bai-nm">PULSE AI</div>${reply}</div>`;
+  } catch(e){
+    document.getElementById('typInd')?.remove();
+    chat.innerHTML+=`<div class="bub bai"><div class="bai-nm">PULSE AI</div>⚠️ Error de conexión.</div>`;
+  }
+  btn.disabled=false; chat.scrollTop=chat.scrollHeight;
+}
+function sendChip(el){document.getElementById('aiIn').value=el.textContent;sendAI()}
+
+// ════════════════════════════════════════
+//  AUTO-REFRESH
+// ════════════════════════════════════════
+function simulateLive(){
+  MATCHES.filter(m=>m.status==='live').forEach(m=>{
+    if(m.sport==='football'){
+      if(!liveMin[m.id]) liveMin[m.id]=m.minute||1;
+      liveMin[m.id]=Math.min(90,liveMin[m.id]+(Math.random()<.65?1:2));
+      if(Math.random()<.04){if(Math.random()<.5)m.score.home++;else m.score.away++;}
+      if(liveMin[m.id]>=90&&Math.random()<.15)m.status='final';
+    }
+    if(m.sport==='basketball'){
+      const parts=(m.gameClock||'12:00').split(':');
+      let totalS=parseInt(parts[0])*60+parseInt(parts[1]||0)-Math.floor(Math.random()*45+30);
+      if(totalS<=0){
+        const q=parseInt((m.quarter||'Q1').replace('Q',''));
+        if(q<4){m.quarter=`Q${q+1}`;m.gameClock='12:00';}else m.status='final';
+      } else {
+        m.gameClock=`${Math.floor(totalS/60)}:${(totalS%60).toString().padStart(2,'0')}`;
+      }
+      if(Math.random()<.25){
+        const pts=Math.random()<.4?3:Math.random()<.5?2:1;
+        if(Math.random()<.5)m.score.home+=pts; else m.score.away+=pts;
+        if(m.prob){const d=m.score.home-m.score.away;m.prob.home=Math.min(95,Math.max(5,50+d*8));m.prob.away=Math.min(95,Math.max(5,100-m.prob.home));}
+      }
+    }
+    if(m.sport==='baseball'){
+      if(Math.random()<.08){
+        const innings=['1ra ▲','1ra ▼','2da ▲','2da ▼','3ra ▲','3ra ▼','4ta ▲','4ta ▼','5ta ▲','5ta ▼','6ta ▲','6ta ▼','7ma ▲','7ma ▼','8va ▲','8va ▼','9na ▲','9na ▼'];
+        const ci=innings.indexOf(m.inning);
+        if(ci<innings.length-1)m.inning=innings[ci+1];else m.status='final';
+      }
+      if(Math.random()<.12){if(Math.random()<.5)m.score.home++;else m.score.away++;}
+    }
+  });
+}
+
+function manualRefresh(){
+  const icon=document.getElementById('ri');
+  icon.classList.add('spin');
+  simulateLive();
+  renderAll();
+  if(curMatch&&document.getElementById('modal').classList.contains('visible')) updateModalLive();
+  document.getElementById('updBadge').innerHTML=`<div class="udot"></div>Actualizado ${new Date().toLocaleTimeString('es-DO',{hour12:false})}`;
+  showToast();
+  setTimeout(()=>icon.classList.remove('spin'),900);
+}
+
+function showToast(){
+  const t=document.getElementById('toast');
+  t.textContent=`↻ Actualizado — ${new Date().toLocaleTimeString('es-DO',{hour12:false})}`;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+function updateCounts(){
+  ['football','basketball','baseball'].forEach(s=>{
+    const c=MATCHES.filter(m=>m.sport===s&&m.status==='live').length;
+    const el=document.getElementById('cnt-'+s); if(el)el.textContent=c;
+  });
+}
+
+// Init live mins
+MATCHES.filter(m=>m.status==='live'&&m.sport==='football').forEach(m=>{liveMin[m.id]=m.minute||1});
+
+// Auto-refresh every 30s
+setInterval(()=>{
+  simulateLive();
+  renderAll();
+  if(curMatch&&document.getElementById('modal').classList.contains('visible')) updateModalLive();
+  document.getElementById('updBadge').innerHTML=`<div class="udot"></div>Actualizado ${new Date().toLocaleTimeString('es-DO',{hour12:false})}`;
+  showToast();
+}, 30000);
+
+renderAll();
+</script>
+</body>
+</html>
