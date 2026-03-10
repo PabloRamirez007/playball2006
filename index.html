@@ -264,6 +264,24 @@ main{padding:18px 22px 40px}
 .bh{background:linear-gradient(90deg,var(--cyan),rgba(0,245,255,.4));transition:width .6s}
 .ba{background:linear-gradient(90deg,rgba(255,215,0,.4),var(--amber));transition:width .6s}
 
+/* player stats table */
+.pst{width:100%;border-collapse:collapse;margin-top:4px}
+.pst thead tr{border-bottom:1px solid rgba(0,245,255,.12)}
+.pst th{font-family:'JetBrains Mono',monospace;font-size:.55rem;color:var(--dim);letter-spacing:1px;padding:5px 8px;text-align:right;font-weight:400}
+.pst th:first-child{text-align:left}
+.pst td{font-size:.72rem;padding:6px 8px;text-align:right;border-bottom:1px solid rgba(255,255,255,.03);font-family:'JetBrains Mono',monospace}
+.pst td:first-child{text-align:left;font-family:'Rajdhani',sans-serif;font-size:.8rem;font-weight:600}
+.pst tr:hover td{background:rgba(255,255,255,.025)}
+.pst .top-val{color:var(--lime);font-weight:700}
+.pst .team-sep td{background:rgba(0,245,255,.04);font-family:'Bebas Neue',sans-serif;
+  font-size:.72rem;letter-spacing:2px;color:var(--cyan);padding:6px 8px;border-bottom:none}
+.pst .team-sep td:first-child{text-align:left}
+.psttabs{display:flex;gap:0;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,.07)}
+.psttab{padding:6px 14px;font-family:'Bebas Neue',sans-serif;font-size:.8rem;letter-spacing:2px;
+  cursor:pointer;border-bottom:2px solid transparent;color:var(--dim);transition:all .18s}
+.psttab:hover{color:var(--hi)}
+.psttab.active{color:var(--amber);border-bottom-color:var(--amber)}
+
 /* feed */
 .fscroll{max-height:320px;overflow-y:auto;padding-right:2px}
 .fscroll::-webkit-scrollbar{width:2px}
@@ -389,7 +407,7 @@ main{padding:18px 22px 40px}
   <div class="logo">PlayBall</div>
   <div class="hdr-mid">
     <div class="live-pill"><div class="ldot"></div>EN VIVO</div>
-    <div class="refresh-pill" onclick="manualRefresh()">
+    <div class="refresh-pill" onclick="manualRefreshLive()">
       <span id="ri" class="ri">↻</span> REFRESH
     </div>
   </div>
@@ -477,8 +495,12 @@ main{padding:18px 22px 40px}
     <!-- TAB: ESTADÍSTICAS + FEED -->
     <div class="tab-content active" id="tab-stats">
       <div class="dgrid" style="margin-top:12px">
-        <div class="panel"><div class="ptitle">📊 ESTADÍSTICAS</div><div id="statsW"></div></div>
+        <div class="panel"><div class="ptitle">📊 ESTADÍSTICAS DEL PARTIDO</div><div id="statsW"></div></div>
         <div class="panel"><div class="ptitle" id="feedTitle">⚡ MINUTO A MINUTO</div><div class="fscroll" id="feedScroll"></div></div>
+      </div>
+      <div class="panel" style="margin-top:12px" id="playerStatsPanel">
+        <div class="ptitle" id="playerStatsTitle">🏅 ESTADÍSTICAS DE JUGADORES</div>
+        <div id="playerStatsW"></div>
       </div>
     </div>
 
@@ -844,28 +866,259 @@ const WATCH_URLS={
   'HBO Max':'https://www.max.com',
 };
 
-let MATCHES=[
-  {id:'fl1',sport:'football',league:'Champions League',status:'live',minute:67,home:{abbr:'MCI',name:'Manchester City'},away:{abbr:'BAR',name:'FC Barcelona'},score:{home:1,away:2},prob:{home:28,draw:22,away:50},watch:['ESPN+','DAZN']},
-  {id:'fl2',sport:'football',league:'Champions League',status:'live',minute:41,home:{abbr:'ATM',name:'Atletico Madrid'},away:{abbr:'TOT',name:'Tottenham'},score:{home:2,away:0},prob:{home:88,draw:9,away:3},watch:['DAZN','HBO Max']},
-  {id:'fl3',sport:'football',league:'Premier League',status:'live',minute:82,home:{abbr:'ARS',name:'Arsenal FC'},away:{abbr:'CFC',name:'Chelsea FC'},score:{home:1,away:1},prob:{home:44,draw:30,away:26},watch:['ESPN+','Sky Sports']},
-  {id:'fl4',sport:'football',league:'La Liga',status:'live',minute:55,home:{abbr:'BAR',name:'FC Barcelona'},away:{abbr:'RMA',name:'Real Madrid'},score:{home:1,away:1},prob:{home:42,draw:28,away:30},watch:['ESPN+','DAZN','Movistar+']},
-  {id:'fl5',sport:'football',league:'Champions League',status:'final',home:{abbr:'ATA',name:'Atalanta BC'},away:{abbr:'BVB',name:'Borussia Dortmund'},score:{home:4,away:1}},
-  {id:'fl6',sport:'football',league:'Premier League',status:'final',home:{abbr:'WOL',name:'Wolverhampton'},away:{abbr:'LFC',name:'Liverpool FC'},score:{home:2,away:1}},
-  {id:'fl7',sport:'football',league:'Champions League',status:'scheduled',time:'10 MAR 20:00',home:{abbr:'NEW',name:'Newcastle Utd'},away:{abbr:'BAR',name:'FC Barcelona'},score:{home:0,away:0},prob:{home:33,draw:24,away:43},watch:['DAZN','ESPN+']},
-  {id:'fl8',sport:'football',league:'Champions League',status:'scheduled',time:'11 MAR 20:00',home:{abbr:'RMA',name:'Real Madrid'},away:{abbr:'MCI',name:'Man City'},score:{home:0,away:0},prob:{home:27,draw:25,away:48},watch:['DAZN','ESPN+']},
-  {id:'bk1',sport:'basketball',league:'NBA',status:'live',quarter:'Q4',gameClock:'1:47',home:{abbr:'LAL',name:'Los Angeles Lakers'},away:{abbr:'GSW',name:'Golden State Warriors'},score:{home:108,away:107},prob:{home:55,draw:0,away:45},watch:['ESPN','TNT','NBA League Pass']},
-  {id:'bk2',sport:'basketball',league:'NBA',status:'live',quarter:'Q3',gameClock:'5:22',home:{abbr:'BOS',name:'Boston Celtics'},away:{abbr:'OKC',name:'OKC Thunder'},score:{home:72,away:68},prob:{home:61,draw:0,away:39},watch:['ESPN','NBA League Pass']},
-  {id:'bk3',sport:'basketball',league:'NBA',status:'final',home:{abbr:'NYK',name:'New York Knicks'},away:{abbr:'DEN',name:'Denver Nuggets'},score:{home:142,away:103}},
-  {id:'bk4',sport:'basketball',league:'NBA',status:'final',home:{abbr:'PHX',name:'Phoenix Suns'},away:{abbr:'NOP',name:'New Orleans'},score:{home:118,away:116}},
-  {id:'bk5',sport:'basketball',league:'NBA',status:'scheduled',time:'HOY 19:00',home:{abbr:'CLE',name:'Cleveland Cavaliers'},away:{abbr:'PHI',name:'Philadelphia 76ers'},score:{home:0,away:0},prob:{home:87,draw:0,away:13},watch:['ESPN','NBA League Pass']},
-  {id:'bk6',sport:'basketball',league:'NBA',status:'scheduled',time:'HOY 19:30',home:{abbr:'OKC',name:'OKC Thunder'},away:{abbr:'DEN',name:'Denver Nuggets'},score:{home:0,away:0},prob:{home:70,draw:0,away:30},watch:['TNT','NBA League Pass']},
-  {id:'bb1',sport:'baseball',league:'Clásico Mundial',status:'live',inning:'6ta ▲',home:{abbr:'ISR',name:'Israel'},away:{abbr:'DOM',name:'Rep. Dominicana'},score:{home:0,away:5},prob:{home:8,draw:0,away:92},watch:['ESPN','Fox Sports']},
-  {id:'bb2',sport:'baseball',league:'Clásico Mundial',status:'live',inning:'4ta ▼',home:{abbr:'PAN',name:'Panamá'},away:{abbr:'COL',name:'Colombia'},score:{home:2,away:2},prob:{home:50,draw:0,away:50},watch:['ESPN','DAZN']},
-  {id:'bb3',sport:'baseball',league:'Clásico Mundial',status:'final',home:{abbr:'VEN',name:'Venezuela'},away:{abbr:'ISR',name:'Israel'},score:{home:11,away:3}},
-  {id:'bb4',sport:'baseball',league:'MLB',status:'final',home:{abbr:'NYM',name:'New York Mets'},away:{abbr:'NYY',name:'New York Yankees'},score:{home:10,away:4}},
-  {id:'bb5',sport:'baseball',league:'Clásico Mundial',status:'scheduled',time:'HOY 23:00',home:{abbr:'PUR',name:'Puerto Rico'},away:{abbr:'CUB',name:'Cuba'},score:{home:0,away:0},watch:['Fox Sports','ESPN Deportes']},
-  {id:'bb6',sport:'baseball',league:'MLB',status:'scheduled',time:'HOY 20:05',home:{abbr:'MIL',name:'Milwaukee Brewers'},away:{abbr:'LAD',name:'LA Dodgers'},score:{home:0,away:0},watch:['Apple TV+','MLB.TV']},
+let MATCHES = [];
+
+// ════════════════════════════════════════
+//  ESPN API — DATOS REALES
+// ════════════════════════════════════════
+
+// Multiple CORS proxies to try in order (fallback chain)
+const CORS_PROXIES = [
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  url => url, // intento directo (funciona en algunas redes/navegadores)
 ];
+
+// ESPN endpoints
+const ESPN_ENDPOINTS = {
+  football_ucl:   'https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.champions/scoreboard',
+  football_epl:   'https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard',
+  football_laliga:'https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/scoreboard',
+  football_mls:   'https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard',
+  basketball_nba: 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard',
+  baseball_mlb:   'https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard',
+};
+
+// League name mapping
+const LEAGUE_NAMES = {
+  football_ucl:'Champions League', football_epl:'Premier League',
+  football_laliga:'La Liga', football_mls:'MLS',
+  basketball_nba:'NBA', baseball_mlb:'MLB',
+};
+
+// Watch channels mapping por deporte
+const WATCH_BY_SPORT = {
+  football:   ['ESPN+','DAZN','Movistar+'],
+  basketball: ['ESPN','TNT','NBA League Pass'],
+  baseball:   ['ESPN','MLB.TV','Apple TV+'],
+};
+
+// Convert ESPN status to our status
+function espnStatus(ev) {
+  const s = ev.status?.type?.name || '';
+  const detail = ev.status?.type?.detail || '';
+  if (s === 'STATUS_IN_PROGRESS' || s === 'STATUS_HALFTIME') return 'live';
+  if (s === 'STATUS_FINAL' || s === 'STATUS_POSTPONED' || s === 'STATUS_ABANDONED') return 'final';
+  return 'scheduled';
+}
+
+// Abbreviation helper — take first 3 uppercase letters of team name
+function makeAbbr(name) {
+  const skip = ['FC','CF','SC','AC','AS','RC','RB','VfB','1.','SL','US'];
+  const parts = name.split(/[\s\.\-]+/).filter(p => p.length > 1 && !skip.includes(p));
+  if (parts.length >= 2) return (parts[0][0] + parts[1].slice(0,2)).toUpperCase();
+  return name.slice(0,3).toUpperCase();
+}
+
+// Format scheduled time (from ESPN ISO date) to short string
+function fmtTime(dateStr) {
+  try {
+    const d = new Date(dateStr);
+    const today = new Date();
+    const tom = new Date(); tom.setDate(today.getDate()+1);
+    const isToday = d.toDateString() === today.toDateString();
+    const isTom = d.toDateString() === tom.toDateString();
+    const hm = d.toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit',hour12:false});
+    if (isToday) return `HOY ${hm}`;
+    if (isTom) return `MAÑ ${hm}`;
+    return d.toLocaleDateString('es-DO',{day:'2-digit',month:'short'}).toUpperCase()+` ${hm}`;
+  } catch(e){ return 'PRÓXIMO'; }
+}
+
+// Map ESPN football inning/clock to our minute
+function footballMinute(ev) {
+  const clk = ev.status?.displayClock || '';
+  const m = parseInt(clk);
+  return isNaN(m) ? (ev.status?.period || 1) * 10 : m;
+}
+
+// Build inning label for baseball
+const INNING_LABELS = ['1ra','2da','3ra','4ta','5ta','6ta','7ma','8va','9na','10ma','11ra','12va'];
+function baseballInning(ev) {
+  const period = ev.status?.period || 1;
+  const lbl = INNING_LABELS[Math.min(period-1, INNING_LABELS.length-1)];
+  // Try to detect top/bottom from status detail
+  const detail = (ev.status?.type?.detail||'').toLowerCase();
+  const half = detail.includes('bot') ? '▼' : '▲';
+  return `${lbl} ${half}`;
+}
+
+// Parse ESPN basketball clock/quarter
+function basketballInfo(ev) {
+  const q = ev.status?.period || 1;
+  const clk = ev.status?.displayClock || '12:00';
+  return { quarter: `Q${q}`, gameClock: clk };
+}
+
+// Transform ESPN event → our MATCH object
+function espnEventToMatch(ev, sport, leagueKey) {
+  const comp = ev.competitions?.[0];
+  if (!comp) return null;
+  const [homeComp, awayComp] = comp.competitors?.length === 2
+    ? comp.competitors[0].homeAway === 'home'
+      ? [comp.competitors[0], comp.competitors[1]]
+      : [comp.competitors[1], comp.competitors[0]]
+    : [comp.competitors?.[0], comp.competitors?.[1]];
+  if (!homeComp || !awayComp) return null;
+
+  const homeName = homeComp.team?.displayName || homeComp.team?.name || 'Home';
+  const awayName = awayComp.team?.displayName || awayComp.team?.name || 'Away';
+  const homeAbbr = (homeComp.team?.abbreviation || makeAbbr(homeName)).slice(0,4).toUpperCase();
+  const awayAbbr = (awayComp.team?.abbreviation || makeAbbr(awayName)).slice(0,4).toUpperCase();
+  const status = espnStatus(ev);
+  const homeScore = parseInt(homeComp.score || 0);
+  const awayScore = parseInt(awayComp.score || 0);
+
+  const base = {
+    id: `espn_${ev.id}`,
+    sport,
+    league: LEAGUE_NAMES[leagueKey] || leagueKey,
+    status,
+    home: { abbr: homeAbbr, name: homeName },
+    away: { abbr: awayAbbr, name: awayName },
+    score: { home: status === 'scheduled' ? 0 : homeScore, away: status === 'scheduled' ? 0 : awayScore },
+    watch: WATCH_BY_SPORT[sport] || ['ESPN'],
+  };
+
+  if (status === 'live') {
+    if (sport === 'football') {
+      base.minute = footballMinute(ev);
+    } else if (sport === 'basketball') {
+      const bk = basketballInfo(ev);
+      base.quarter = bk.quarter;
+      base.gameClock = bk.gameClock;
+    } else if (sport === 'baseball') {
+      base.inning = baseballInning(ev);
+    }
+  } else if (status === 'scheduled') {
+    base.time = fmtTime(ev.date);
+  }
+
+  // Win probabilities if ESPN provides them
+  const odds = comp.odds?.[0];
+  if (odds && status !== 'final') {
+    // ESPN doesn't always provide win prob; skip if missing
+  }
+
+  return base;
+}
+
+// Fetch one ESPN endpoint trying all proxies in order
+async function fetchESPN(leagueKey) {
+  const url = ESPN_ENDPOINTS[leagueKey];
+  const sport = leagueKey.startsWith('football') ? 'football'
+    : leagueKey.startsWith('basketball') ? 'basketball'
+    : 'baseball';
+
+  for (let i = 0; i < CORS_PROXIES.length; i++) {
+    const proxyUrl = CORS_PROXIES[i](url);
+    try {
+      const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(7000) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      // allorigins wraps in {contents:...}
+      const parsed = data.contents ? JSON.parse(data.contents) : data;
+      const events = parsed.events || [];
+      if (events.length >= 0) {
+        // Success — remember this proxy index for future calls
+        window._workingProxyIdx = i;
+        return events.map(ev => espnEventToMatch(ev, sport, leagueKey)).filter(Boolean);
+      }
+    } catch(e) {
+      console.warn(`Proxy ${i} failed for ${leagueKey}:`, e.message);
+    }
+  }
+  return [];
+}
+
+// ─── Loading overlay ───
+function showLoader(msg) {
+  let el = document.getElementById('apiLoader');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'apiLoader';
+    el.style.cssText = `position:fixed;inset:0;background:rgba(7,9,13,.92);z-index:6000;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+      font-family:'JetBrains Mono',monospace;font-size:.8rem;color:#00f5ff;letter-spacing:2px`;
+    el.innerHTML = `<div style="font-size:2.5rem;animation:spin .9s linear infinite" id="loaderIcon">⚡</div>
+      <div id="loaderMsg">CARGANDO DATOS EN VIVO...</div>
+      <div style="color:#4a5a6e;font-size:.6rem">Conectando con ESPN API</div>`;
+    document.body.appendChild(el);
+  }
+  document.getElementById('loaderMsg').textContent = msg;
+  el.style.display = 'flex';
+}
+function hideLoader() {
+  const el = document.getElementById('apiLoader');
+  if (el) { el.style.opacity='0'; el.style.transition='opacity .4s'; setTimeout(()=>el.remove(),400); }
+}
+
+// ─── Main data loader ───
+async function loadLiveData() {
+  showLoader('BUSCANDO PARTIDOS EN VIVO...');
+  const keys = Object.keys(ESPN_ENDPOINTS);
+
+  // Try all endpoints concurrently; each endpoint tries its own proxy chain
+  const results = await Promise.allSettled(keys.map(k => fetchESPN(k)));
+  let all = [];
+  results.forEach(r => { if (r.status === 'fulfilled') all = all.concat(r.value); });
+
+  hideLoader();
+
+  if (all.length > 0) {
+    MATCHES = all;
+    MATCHES.filter(m=>m.status==='live'&&m.sport==='football').forEach(m=>{liveMin[m.id]=m.minute||1});
+    renderAll();
+    const proxyNames = ['allorigins','corsproxy.io','codetabs','directo'];
+    const usedProxy = proxyNames[window._workingProxyIdx ?? 0];
+    document.getElementById('updBadge').innerHTML=`<div class="udot"></div>ESPN · ${usedProxy} · ${new Date().toLocaleTimeString('es-DO',{hour12:false})}`;
+    showToast();
+  } else {
+    // All proxies failed — show helpful error with retry
+    document.getElementById('liveGrid').innerHTML = `
+      <div class="empty-state" style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:50px 20px">
+        <div style="font-size:2rem">📡</div>
+        <div style="color:var(--amber);font-family:'Bebas Neue';font-size:1.1rem;letter-spacing:2px">Sin conexión con ESPN API</div>
+        <div style="font-size:.72rem;color:var(--dim);max-width:320px;text-align:center;line-height:1.7">
+          Todos los proxies CORS fallaron. Esto puede ocurrir por:<br>
+          • Tu red bloquea peticiones externas<br>
+          • Los proxies están temporalmente caídos<br>
+          • Restricciones del navegador
+        </div>
+        <div onclick="manualRefreshLive()" style="cursor:pointer;border:1px solid var(--cyan);color:var(--cyan);
+          padding:8px 20px;border-radius:8px;font-family:'Bebas Neue';font-size:.85rem;letter-spacing:2px;
+          background:rgba(0,245,255,.06);margin-top:4px">↻ REINTENTAR</div>
+      </div>`;
+    document.getElementById('upcomingGrid').innerHTML = `<div class="empty-state">— sin datos —</div>`;
+    document.getElementById('recentGrid').innerHTML = `<div class="empty-state">— sin datos —</div>`;
+    document.getElementById('updBadge').innerHTML=`<div class="udot" style="background:var(--red)"></div>Sin conexión`;
+    updateCounts();
+  }
+}
+
+// ─── Refresh real data every 60s ───
+async function liveRefreshLoop() {
+  await loadLiveData();
+  setInterval(async () => {
+    await loadLiveData();
+    if(curMatch && document.getElementById('modal').classList.contains('visible')) {
+      // Refresh curMatch from updated MATCHES
+      const updated = MATCHES.find(m => m.id === curMatch.id);
+      if (updated) { curMatch = updated; updateModalLive(); }
+    }
+  }, 60000);
+}
 
 const liveMin={};
 
@@ -1113,6 +1366,7 @@ function populateModal(m){
   } else pr.style.display='none';
   document.getElementById('wBar').innerHTML=m.watch?.map(w=>`<a class="wbtn" href="${WATCH_URLS[w]||'#'}" target="_blank" rel="noopener">📺 ${w}</a>`).join('')||`<span style="color:var(--dim);font-size:.8rem">Consulta plataformas en tu región.</span>`;
   renderStats(m);
+  renderPlayerStats(m);
   renderFeed(m,'feedScroll','feedTitle');
   renderFeed(m,'feedScroll2','feedTitle2');
   renderLineup(m);
@@ -1149,6 +1403,264 @@ function renderStats(m){
     stats=[{l:'Hits',h:rng(m.score.home*1.5+3,4),a:rng(m.score.away*1.5+4,4)},{l:'Errores',h:rng(1,1),a:rng(1,1)},{l:'Dobles',h:rng(2,2),a:rng(2,2)},{l:'Home Runs',h:rng(m.score.home*.3,1),a:rng(m.score.away*.3,1)},{l:'Strikeouts',h:rng(6,4),a:rng(5,4)},{l:'Bases x bolas',h:rng(3,2),a:rng(3,2)},{l:'Carreras imp.',h:m.score.home,a:m.score.away},{l:'Prom. bateo',h:+(Math.random()*.12+.220).toFixed(3),a:+(Math.random()*.12+.210).toFixed(3)}];
   }
   document.getElementById('statsW').innerHTML=stats.map(s=>{const t=(+s.h+ +s.a)||1,hp=Math.round(+s.h/t*100);return`<div class="srow"><div class="svh">${s.h}</div><div class="slbl">${s.l}</div><div class="sva">${s.a}</div><div class="bw"><div class="bh" style="width:${hp}%"></div><div class="ba" style="width:${100-hp}%"></div></div></div>`}).join('');
+}
+
+// ════════════════════════════════════════
+//  PLAYER STATS
+// ════════════════════════════════════════
+
+// Seed-based deterministic random so stats don't change on re-render
+function seededRng(seed){
+  let s=seed|0;
+  return function(min,max){
+    s=(s*1664525+1013904223)&0xffffffff;
+    const t=(s>>>0)/0xffffffff;
+    return Math.round(min+t*(max-min));
+  };
+}
+
+// Generic player name pools for unknown teams
+const GEN_FL_NAMES=['García','Martínez','López','Hernández','Pérez','Rodríguez','Jiménez','Sánchez','Fernández','Díaz','Torres','Moreno','Álvarez','Muñoz','Romero','Silva','Castro'];
+const GEN_BK_NAMES=['Johnson','Williams','Brown','Jones','Davis','Miller','Wilson','Moore','Taylor','Anderson','Thomas','Jackson','White','Harris','Martin','Thompson'];
+const GEN_BB_NAMES=['González','Ramírez','Rivera','Cruz','Reyes','Morales','Ortiz','Flores','Vargas','Castillo','Ramos','Vega','Mendoza','Herrera','Estrada'];
+
+function genName(pool, seed, offset){
+  const r = seededRng(seed+offset*137);
+  return pool[r(0,pool.length-1)];
+}
+
+// Build player stat rows for football
+function buildFootballPlayers(team, isHome, matchSeed){
+  const seed = matchSeed + (isHome ? 0 : 500);
+  const color = isHome ? '#00c8ff' : '#ff8c00';
+  const positions = ['DEL','DEL','MED','MED','MED','DEF','DEF','DEF','DEF','POR'];
+  const knownPlayers = {
+    // Premier League
+    ARS:['Saka','Ødegaard','Havertz','Martinelli','Rice','Saliba','Raya'],
+    CFC:['Palmer','Jackson','Enzo','Caicedo','James','Gallagher'],
+    LFC:['Salah','Núñez','Szoboszlai','Van Dijk','Alisson'],
+    MCI:['Haaland','De Bruyne','Foden','Rodri','Ederson'],
+    MUN:['Rashford','Fernandes','Højlund','Casemiro'],
+    TOT:['Son','Maddison','Kulusevski','Richarlison'],
+    // La Liga
+    BAR:['Yamal','Lewandowski','Pedri','Gavi','Cubarsí'],
+    RMA:['Mbappé','Vinicius','Bellingham','Valverde','Courtois'],
+    ATM:['Griezmann','Morata','De Paul','Koke','Oblak'],
+    SEV:['En-Nesyri','Rakitić','Acuña'],
+    // Champions
+    MCI:['Haaland','De Bruyne','Foden'],
+    BVB:['Sancho','Reus','Brandt','Hummels'],
+    PSG:['Mbappé','Dembélé','Vitinha','Marquinhos'],
+    BAY:['Kane','Müller','Kimmich','Neuer'],
+    INT:['Lautaro','Thuram','Barella','Calhanoglu'],
+    // MLS
+    LAG:['Riqui Puig','Bouanga','Chiellini'],
+    ATL:['Almada','Benteke','Muyumba'],
+    NYRB:['Fabio','Tolkin','Morgan'],
+  };
+  const pool = knownPlayers[team.abbr] || null;
+  const r = seededRng(seed);
+  const rows = [];
+  for(let i=0;i<7;i++){
+    const namePool = GEN_FL_NAMES;
+    const nm = pool ? (pool[i] || pool[i%pool.length]) : genName(namePool, seed, i);
+    const mins = r(45,90);
+    const goals = i<2 ? r(0,2) : 0;
+    const ast = i<4 ? r(0,2) : 0;
+    const shots = r(0,4);
+    const passes = r(20,80);
+    const rating = (5.5 + Math.abs((seededRng(seed+i*77))(0,40)/10)).toFixed(1);
+    rows.push({nm, pos:positions[i]||'DEF', mins, goals, ast, shots, passes, rating, color});
+  }
+  return rows;
+}
+
+// Build player stat rows for basketball
+function buildBasketballPlayers(team, isHome, matchSeed){
+  const seed = matchSeed + (isHome ? 0 : 500);
+  const color = isHome ? '#ff8c00' : '#00f5ff';
+  const pos5 = ['PG','SG','SF','PF','C'];
+  const knownPlayers = {
+    LAL:['LeBron James','A. Davis','Austin Reaves','D\'Angelo Russell','Rui Hachimura','Gabe Vincent','Cam Anthony'],
+    GSW:['S. Curry','Klay Thompson','Draymond Green','J. Kuminga','B. Podziemski','Moses Moody'],
+    BOS:['Jayson Tatum','Jaylen Brown','K. Porziņģis','Jrue Holiday','Al Horford','Payton Pritchard'],
+    OKC:['SGA','Chet Holmgren','L. Dort','J. Williams','I. Joe','A. Wiggins'],
+    NYK:['J. Brunson','Julius Randle','OG Anunoby','Josh Hart','M. Robinson','Donte DiVincenzo'],
+    DEN:['N. Jokić','Jamal Murray','M. Porter Jr.','Aaron Gordon','K. Caldwell-Pope'],
+    MIA:['J. Butler','B. Adebayo','T. Herro','K. Lowry','H. Duncan-Robinson'],
+    PHX:['D. Booker','K. Durant','B. Bradley Beal','J. Nurkić','G. Allen'],
+    CLE:['D. Mitchell','D. Garland','E. Mobley','J. Allen','M. Strus'],
+    PHI:['J. Embiid','T. Maxey','T. Oubre Jr.','K. Lowry','P. Reed'],
+    MIL:['G. Antetokounmpo','K. Middleton','D. Lillard','B. Lopez','M. Portis'],
+    ATL:['T. Young','D. Murray','B. Bogdanovic','Clint Capela','D. Hunter'],
+    SAC:['D. Sabonis','De\'Aaron Fox','K. Huerter','H. Barnes','K. Murray'],
+    MIN:['K. Towns','A. Edwards','R. Gobert','M. Conley','J. McDaniels'],
+    DAL:['L. Dončić','K. Irving','P. Washington','M. Kleber','T. Hardaway'],
+    MEM:['J. Morant','D. Bane','J. Jackson Jr.','S. Adams','D. Brooks'],
+  };
+  const pool = knownPlayers[team.abbr] || null;
+  const r = seededRng(seed);
+  const rows = [];
+  const maxPts = 30 + r(0,15);
+  for(let i=0;i<6;i++){
+    const nm = pool ? (pool[i]||pool[i%pool.length]) : genName(GEN_BK_NAMES, seed, i);
+    const pts = Math.max(0, Math.round(maxPts * (1 - i*0.18) + r(-4,4)));
+    const reb = r(i<2?2:4, i<2?6:12);
+    const ast = r(i===0?4:0, i<3?8:3);
+    const stl = r(0,3);
+    const blk = i>3 ? r(0,3) : r(0,1);
+    const fgm = r(2,8); const fga = fgm + r(2,6);
+    const fg = fga>0 ? ((fgm/fga)*100).toFixed(0)+'%' : '—';
+    const mins = r(18,36);
+    const pm = r(-10,15);
+    rows.push({nm, pos:pos5[i]||'BENCH', pts, reb, ast, stl, blk, fg, mins, pm:pm>0?'+'+pm:pm, color});
+  }
+  return rows;
+}
+
+// Build player stat rows for baseball
+function buildBaseballPlayers(team, isHome, matchSeed){
+  const seed = matchSeed + (isHome ? 0 : 500);
+  const color = isHome ? '#bf5fff' : '#ffd700';
+  const pos9 = ['1B','2B','SS','3B','RF','CF','LF','C','DH'];
+  const knownPlayers = {
+    NYY:['Aaron Judge','G. Stanton','A. Volpe','DJ LeMahieu','Gleyber Torres','Harrison Bader','Jose Trevino'],
+    LAD:['Shohei Ohtani','Mookie Betts','F. Freeman','W. Smith','Max Muncy','J. Outman'],
+    ATL:['Ronald Acuña Jr.','Austin Riley','Matt Olson','Ozzie Albies','M. Ozuna','Travis d\'Arnaud'],
+    HOU:['José Altuve','Kyle Tucker','Yordan Álvarez','Alex Bregman','Martin Maldonado'],
+    NYM:['P. Alonso','F. Lindor','J. McNeil','Tommy Pham','Starling Marte'],
+    BOS:['Rafael Devers','Triston Casas','J.D. Martinez','Masataka Yoshida','Trevor Story'],
+    CHC:['Cody Bellinger','Ian Happ','Dansby Swanson','Nico Hoerner','Patrick Wisdom'],
+    MIL:['Christian Yelich','Willy Adames','W. Contreras','R. Urías','J. Wiemer'],
+    MIN:['Carlos Correa','Ryan Jeffers','Byron Buxton','Max Kepler','J. Miranda'],
+    TOR:['Bo Bichette','Vladimir Guerrero Jr.','Matt Chapman','Danny Jansen'],
+    SD:['Juan Soto','Manny Machado','Jake Cronenworth','Xander Bogaerts','Ha-seong Kim'],
+    SF:['LaMonte Wade Jr.','Wilmer Flores','J.D. Davis','Brandon Crawford'],
+  };
+  const pool = knownPlayers[team.abbr] || null;
+  const r = seededRng(seed);
+  const rows = [];
+  for(let i=0;i<9;i++){
+    const nm = pool ? (pool[i%Math.max(pool.length,1)]||pool[0]) : genName(GEN_BB_NAMES, seed, i);
+    const ab = r(2,5);
+    const h = r(0,ab);
+    const avg = ab>0 ? (h/ab).toFixed(3) : '.000';
+    const hr = h>0&&Math.random()<0.2 ? 1 : 0;
+    const rbi = r(0,3);
+    const bb = r(0,2);
+    const so = r(0,3);
+    rows.push({nm, pos:pos9[i]||'OF', ab, h, hr, rbi, bb, so, avg, color});
+  }
+  return rows;
+}
+
+// Render the full player stats panel
+function renderPlayerStats(m){
+  const el = document.getElementById('playerStatsW');
+  const panel = document.getElementById('playerStatsPanel');
+  const titleEl = document.getElementById('playerStatsTitle');
+  if(!el) return;
+
+  // Seed from match id so stats are stable per match
+  const seed = m.id.split('').reduce((a,c)=>a+c.charCodeAt(0),0) * 31;
+
+  if(m.sport==='basketball'){
+    titleEl.textContent = '🏅 ESTADÍSTICAS DE JUGADORES — NBA';
+    const hRows = buildBasketballPlayers(m.home, true, seed);
+    const aRows = buildBasketballPlayers(m.away, false, seed);
+
+    // Find top values for highlighting
+    const allPts = [...hRows,...aRows].map(r=>r.pts);
+    const maxPts = Math.max(...allPts);
+
+    const makeTableBK = (rows, team) => {
+      const trs = rows.map(r => {
+        const isTop = r.pts === maxPts;
+        return `<tr>
+          <td><span style="color:${r.color};font-size:.6rem;margin-right:5px">${r.pos}</span>${r.nm}</td>
+          <td class="${isTop?'top-val':''}">${r.pts}</td>
+          <td>${r.reb}</td><td>${r.ast}</td><td>${r.stl}</td><td>${r.blk}</td>
+          <td>${r.fg}</td><td style="color:${r.pm>=0?'var(--lime)':'var(--red)'}">${r.pm}</td>
+          <td style="color:var(--dim)">${r.mins}</td>
+        </tr>`;
+      }).join('');
+      return `<tr class="team-sep"><td colspan="9" style="color:${rows[0].color}">${team.name}</td></tr>${trs}`;
+    };
+
+    el.innerHTML = `
+      <table class="pst">
+        <thead><tr>
+          <th style="text-align:left">JUGADOR</th>
+          <th>PTS</th><th>REB</th><th>AST</th><th>ROB</th><th>BLQ</th><th>FG%</th><th>+/-</th><th>MIN</th>
+        </tr></thead>
+        <tbody>${makeTableBK(hRows,m.home)}${makeTableBK(aRows,m.away)}</tbody>
+      </table>`;
+
+  } else if(m.sport==='football'){
+    titleEl.textContent = '🏅 ESTADÍSTICAS DE JUGADORES — ' + m.league.toUpperCase();
+    const hRows = buildFootballPlayers(m.home, true, seed);
+    const aRows = buildFootballPlayers(m.away, false, seed);
+
+    const allRatings = [...hRows,...aRows].map(r=>parseFloat(r.rating));
+    const maxRating = Math.max(...allRatings);
+
+    const makeTableFL = (rows, team) => {
+      const trs = rows.map(r => {
+        const isTop = parseFloat(r.rating)===maxRating;
+        return `<tr>
+          <td><span style="color:${r.color};font-size:.6rem;margin-right:5px">${r.pos}</span>${r.nm}</td>
+          <td>${r.goals>0?'⚽'.repeat(r.goals):r.goals}</td>
+          <td>${r.ast>0?'🎯'+r.ast:r.ast}</td>
+          <td>${r.shots}</td><td>${r.passes}</td>
+          <td class="${isTop?'top-val':''}">${r.rating}</td>
+          <td style="color:var(--dim)">${r.mins}'</td>
+        </tr>`;
+      }).join('');
+      return `<tr class="team-sep"><td colspan="7" style="color:${rows[0].color}">${team.name}</td></tr>${trs}`;
+    };
+
+    el.innerHTML = `
+      <table class="pst">
+        <thead><tr>
+          <th style="text-align:left">JUGADOR</th>
+          <th>GOL</th><th>AST</th><th>TIROS</th><th>PASES</th><th>NOTA</th><th>MIN</th>
+        </tr></thead>
+        <tbody>${makeTableFL(hRows,m.home)}${makeTableFL(aRows,m.away)}</tbody>
+      </table>`;
+
+  } else {
+    // baseball
+    titleEl.textContent = '🏅 ESTADÍSTICAS DE JUGADORES — ' + m.league.toUpperCase();
+    const hRows = buildBaseballPlayers(m.home, true, seed);
+    const aRows = buildBaseballPlayers(m.away, false, seed);
+
+    const allH = [...hRows,...aRows].map(r=>r.h);
+    const maxH = Math.max(...allH);
+
+    const makeTableBB = (rows, team) => {
+      const trs = rows.map(r => {
+        const isTop = r.h === maxH && maxH > 0;
+        return `<tr>
+          <td><span style="color:${r.color};font-size:.6rem;margin-right:5px">${r.pos}</span>${r.nm}</td>
+          <td>${r.ab}</td>
+          <td class="${isTop?'top-val':''}">${r.h}</td>
+          <td>${r.hr>0?'💥'+r.hr:r.hr}</td>
+          <td>${r.rbi}</td><td>${r.bb}</td><td>${r.so}</td>
+          <td style="color:${parseFloat(r.avg)>=.300?'var(--lime)':parseFloat(r.avg)>=.250?'var(--amber)':'var(--dim)'}">${r.avg}</td>
+        </tr>`;
+      }).join('');
+      return `<tr class="team-sep"><td colspan="8" style="color:${rows[0].color}">${team.name}</td></tr>${trs}`;
+    };
+
+    el.innerHTML = `
+      <table class="pst">
+        <thead><tr>
+          <th style="text-align:left">JUGADOR</th>
+          <th>AB</th><th>H</th><th>HR</th><th>RBI</th><th>BB</th><th>SO</th><th>AVG</th>
+        </tr></thead>
+        <tbody>${makeTableBB(hRows,m.home)}${makeTableBB(aRows,m.away)}</tbody>
+      </table>`;
+  }
 }
 
 // ════════════════════════════════════════
@@ -1456,19 +1968,22 @@ function updateCounts(){
   });
 }
 
-// Init live mins
-MATCHES.filter(m=>m.status==='live'&&m.sport==='football').forEach(m=>{liveMin[m.id]=m.minute||1});
+// Manual refresh now fetches real data
+async function manualRefreshLive(){
+  const icon=document.getElementById('ri');
+  icon.classList.add('spin');
+  await loadLiveData();
+  setTimeout(()=>icon.classList.remove('spin'),900);
+}
 
-// Auto-refresh every 30s
-setInterval(()=>{
-  simulateLive();
-  renderAll();
-  if(curMatch&&document.getElementById('modal').classList.contains('visible')) updateModalLive();
-  document.getElementById('updBadge').innerHTML=`<div class="udot"></div>Actualizado ${new Date().toLocaleTimeString('es-DO',{hour12:false})}`;
-  showToast();
-}, 30000);
+// Override the existing manualRefresh button to call live version
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.querySelector('.refresh-pill');
+  if (btn) btn.setAttribute('onclick', 'manualRefreshLive()');
+});
 
-renderAll();
+// Start live data loop
+liveRefreshLoop();
 </script>
 </body>
 </html>
